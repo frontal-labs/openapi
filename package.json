@@ -1,0 +1,56 @@
+{
+  "name": "@frontal/openapi",
+  "version": "1.0.0",
+  "description": "Unified OpenAPI specifications for Frontal services",
+  "main": "index.js",
+  "scripts": {
+    "validate": "node scripts/validate.js",
+    "validate:all": "node scripts/validate.js --all",
+    "validate:service": "node scripts/validate.js --service",
+    "generate": "npm run generate:composite && npm run generate:docs",
+    "generate:composite": "node scripts/generate-composite.js",
+    "generate:docs": "node scripts/generate-docs.js",
+    "generate:sdks": "node scripts/generate-sdks.js",
+    "build": "npm run validate && npm run generate",
+    "test": "npm run validate",
+    "lint": "eslint scripts/ --fix",
+    "format": "prettier --write scripts/ *.md",
+    "check-breaking": "node scripts/check-breaking.js",
+    "publish": "node scripts/publish.js",
+    "dev": "node scripts/watch.js",
+    "clean": "rm -rf dist/ docs/build/ composite/",
+    "prepare": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/frontal-labs/openapi.git"
+  },
+  "keywords": [
+    "openapi",
+    "api",
+    "specification",
+    "frontal",
+    "microservices",
+    "documentation"
+  ],
+  "author": "Frontal Labs",
+  "license": "MIT",
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^10.1.0",
+    "js-yaml": "^4.1.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "files": [
+    "specs/",
+    "composite/",
+    "schemas/",
+    "examples/",
+    "docs/build/",
+    "README.md",
+    "LICENSE"
+  ]
+}
