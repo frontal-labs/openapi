@@ -1,0 +1,839 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Blob Storage Service API
+  description: |-
+    Object storage service for managing files, images, and binary data with multi-cloud support.
+
+    **Features:**
+    - File upload and download
+    - Multi-cloud storage backends
+    - Image processing and optimization
+    - CDN integration
+    - Access control and permissions
+    - Storage analytics
+
+  termsOfService: https://frontal.com/terms
+  contact:
+    name: API Support
+    url: https://github.com/frontal-labs/blob-storage-service/issues
+  license:
+    name: MIT License
+    url: https://github.com/frontal-labs/blob-storage-service/blob/main/LICENSE
+
+servers:
+  - url: "http://localhost:3004"
+    description: Development server
+  - url: "https://storage.frontal.dev"
+    description: Production server
+
+tags:
+  - name: Files
+    description: File management operations
+  - name: Buckets
+    description: Storage bucket operations
+  - name: Images
+    description: Image processing operations
+  - name: Analytics
+    description: Storage analytics operations
+
+paths:
+  /v1/files:
+    get:
+      tags:
+        - Files
+      summary: List files
+      description: Retrieve a paginated list of files with optional filtering
+      operationId: listFiles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucketId
+          in: query
+          description: Filter by bucket ID
+          schema:
+            type: string
+            format: uuid
+        - name: mimeType
+          in: query
+          description: Filter by MIME type
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/File'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Files
+      summary: Upload file
+      description: Upload a new file to storage
+      operationId: uploadFile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+                bucketId:
+                  type: string
+                  format: uuid
+                  description: Target bucket ID
+                name:
+                  type: string
+                  description: Custom filename
+                metadata:
+                  type: object
+                  description: File metadata
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/File'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/files/{id}:
+    get:
+      tags:
+        - Files
+      summary: Get file details
+      description: Retrieve detailed information about a file
+      operationId: getFile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: File ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/File'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Files
+      summary: Delete file
+      description: Delete a file from storage
+      operationId: deleteFile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: File ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: File deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/files/{id}/download:
+    get:
+      tags:
+        - Files
+      summary: Download file
+      description: Download a file from storage
+      operationId: downloadFile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: File ID
+          schema:
+            type: string
+            format: uuid
+        - name: variant
+          in: query
+          description: Image variant (for images only)
+          schema:
+            type: string
+            enum: [original, thumbnail, medium, large]
+            default: original
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/files/{id}/process:
+    post:
+      tags:
+        - Images
+      summary: Process image
+      description: Process an image with various transformations
+      operationId: processImage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: File ID (must be an image)
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageProcessingRequest'
+      responses:
+        '200':
+          description: Image processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ProcessedImage'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/buckets:
+    get:
+      tags:
+        - Buckets
+      summary: List buckets
+      description: Retrieve a list of storage buckets
+      operationId: listBuckets
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of buckets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Bucket'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Buckets
+      summary: Create bucket
+      description: Create a new storage bucket
+      operationId: createBucket
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBucketRequest'
+      responses:
+        '201':
+          description: Bucket created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Bucket'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/analytics/storage:
+    get:
+      tags:
+        - Analytics
+      summary: Get storage analytics
+      description: Retrieve storage usage and analytics data
+      operationId: getStorageAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucketId
+          in: query
+          description: Filter by bucket ID
+          schema:
+            type: string
+            format: uuid
+        - name: period
+          in: query
+          description: Time period for analytics
+          schema:
+            type: string
+            enum: [1d, 7d, 30d, 90d]
+            default: 30d
+      responses:
+        '200':
+          description: Storage analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/StorageAnalytics'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    File:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          example: "profile-picture.jpg"
+          description: Original filename
+        mimeType:
+          type: string
+          example: "image/jpeg"
+          description: MIME type
+        size:
+          type: integer
+          example: 1024000
+          description: File size in bytes
+        bucketId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Bucket ID
+        url:
+          type: string
+          format: uri
+          example: "https://storage.frontal.dev/files/550e8400-e29b-41d4-a716-446655440000"
+          description: Public URL
+        cdnUrl:
+          type: string
+          format: uri
+          example: "https://cdn.frontal.dev/files/550e8400-e29b-41d4-a716-446655440000"
+          description: CDN URL
+        metadata:
+          type: object
+          description: File metadata
+          example:
+            width: 1920
+            height: 1080
+            exif: {}
+        access:
+          type: string
+          enum: [public, private, signed]
+          example: "public"
+          description: Access level
+        checksum:
+          type: string
+          example: "sha256:abc123..."
+          description: File checksum
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    Bucket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          example: "user-uploads"
+          description: Bucket name
+        description:
+          type: string
+          example: "User uploaded files"
+          description: Bucket description
+        provider:
+          type: string
+          enum: [aws, gcp, azure, local]
+          example: "aws"
+          description: Storage provider
+        region:
+          type: string
+          example: "us-east-1"
+          description: Storage region
+        access:
+          type: string
+          enum: [public, private]
+          example: "private"
+          description: Default access level
+        settings:
+          type: object
+          description: Bucket settings
+          example:
+            cdnEnabled: true
+            compressionEnabled: true
+            retentionDays: 365
+        usage:
+          $ref: '#/components/schemas/BucketUsage'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    CreateBucketRequest:
+      type: object
+      required:
+        - name
+        - provider
+      properties:
+        name:
+          type: string
+          example: "user-uploads"
+          description: Bucket name
+        description:
+          type: string
+          example: "User uploaded files"
+          description: Bucket description
+        provider:
+          type: string
+          enum: [aws, gcp, azure, local]
+          example: "aws"
+          description: Storage provider
+        region:
+          type: string
+          example: "us-east-1"
+          description: Storage region
+        access:
+          type: string
+          enum: [public, private]
+          default: "private"
+          description: Default access level
+        settings:
+          type: object
+          description: Bucket settings
+          example:
+            cdnEnabled: true
+            compressionEnabled: true
+
+    ImageProcessingRequest:
+      type: object
+      properties:
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageOperation'
+          description: Image processing operations
+        outputFormat:
+          type: string
+          enum: [jpeg, png, webp, avif]
+          default: "jpeg"
+          description: Output format
+        quality:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 80
+          description: Output quality
+
+    ImageOperation:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [resize, crop, rotate, flip, watermark]
+          example: "resize"
+          description: Operation type
+        parameters:
+          type: object
+          description: Operation parameters
+          example:
+            width: 800
+            height: 600
+            fit: "cover"
+
+    ProcessedImage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        originalFileId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+          description: Original file ID
+        url:
+          type: string
+          format: uri
+          example: "https://storage.frontal.dev/files/550e8400-e29b-41d4-a716-446655440002"
+          description: Processed image URL
+        size:
+          type: integer
+          example: 512000
+          description: Processed file size in bytes
+        format:
+          type: string
+          example: "jpeg"
+          description: Output format
+        dimensions:
+          type: object
+          properties:
+            width:
+              type: integer
+              example: 800
+            height:
+              type: integer
+              example: 600
+          description: Image dimensions
+        processingTime:
+          type: integer
+          example: 2500
+          description: Processing time in milliseconds
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    BucketUsage:
+      type: object
+      properties:
+        fileCount:
+          type: integer
+          example: 1250
+          description: Number of files
+        totalSize:
+          type: integer
+          example: 10737418240
+          description: Total size in bytes
+        averageFileSize:
+          type: integer
+          example: 8589934
+          description: Average file size in bytes
+        lastActivity:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+          description: Last activity timestamp
+
+    StorageAnalytics:
+      type: object
+      properties:
+        totalFiles:
+          type: integer
+          example: 10000
+          description: Total number of files
+        totalSize:
+          type: integer
+          example: 107374182400
+          description: Total storage used in bytes
+        topMimeTypes:
+          type: array
+          items:
+            type: object
+            properties:
+              mimeType:
+                type: string
+                example: "image/jpeg"
+              count:
+                type: integer
+                example: 3500
+              size:
+                type: integer
+                example: 53687091200
+          description: Top MIME types by usage
+        uploadTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: "2023-12-01"
+              uploads:
+                type: integer
+                example: 150
+              size:
+                type: integer
+                example: 1073741824
+          description: Upload trend data
+        cdnUsage:
+          type: object
+          properties:
+            requests:
+              type: integer
+              example: 1000000
+              description: CDN requests
+            bandwidth:
+              type: integer
+              example: 107374182400
+              description: CDN bandwidth in bytes
+            cacheHitRate:
+              type: number
+              format: percentage
+              example: 0.85
+              description: Cache hit rate
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+          description: Current page number
+        limit:
+          type: integer
+          example: 20
+          description: Items per page
+        total:
+          type: integer
+          example: 100
+          description: Total number of items
+        totalPages:
+          type: integer
+          example: 5
+          description: Total number of pages
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication service
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Validation error"
+              timestamp:
+                type: string
+                format: date-time
+
+    Unauthorized:
+      description: Unauthorized access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Authentication required"
+              timestamp:
+                type: string
+                format: date-time
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Resource not found"
+              timestamp:
+                type: string
+                format: date-time
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Internal server error"
+              timestamp:
+                type: string
+                format: date-time

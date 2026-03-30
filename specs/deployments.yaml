@@ -1,0 +1,887 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Deployments Service API
+  description: |-
+    Application deployment management service for handling container deployments, rollouts, and infrastructure management.
+
+    **Features:**
+    - Application deployment and management
+    - Rolling updates and rollbacks
+    - Environment management
+    - Deployment history and monitoring
+    - Infrastructure provisioning
+    - Health checks and monitoring
+
+  termsOfService: https://frontal.com/terms
+  contact:
+    name: API Support
+    url: https://github.com/frontal-labs/deployments-service/issues
+  license:
+    name: MIT License
+    url: https://github.com/frontal-labs/deployments-service/blob/main/LICENSE
+
+servers:
+  - url: "http://localhost:3001"
+    description: Development server
+  - url: "https://deployments.frontal.dev"
+    description: Production server
+
+tags:
+  - name: Deployments
+    description: Deployment management operations
+  - name: Applications
+    description: Application management operations
+  - name: Environments
+    description: Environment management operations
+  - name: Infrastructure
+    description: Infrastructure operations
+
+paths:
+  /v1/deployments:
+    get:
+      tags:
+        - Deployments
+      summary: List deployments
+      description: Retrieve a paginated list of deployments with optional filtering
+      operationId: listDeployments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: applicationId
+          in: query
+          description: Filter by application ID
+          schema:
+            type: string
+            format: uuid
+        - name: environmentId
+          in: query
+          description: Filter by environment ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by deployment status
+          schema:
+            type: string
+            enum: [pending, building, deploying, deployed, failed, rolling_back]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of deployments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deployment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Deployments
+      summary: Create deployment
+      description: Deploy a new version of an application
+      operationId: createDeployment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeploymentRequest'
+      responses:
+        '201':
+          description: Deployment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Deployment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/deployments/{id}:
+    get:
+      tags:
+        - Deployments
+      summary: Get deployment details
+      description: Retrieve detailed information about a specific deployment
+      operationId: getDeployment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deployment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deployment details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Deployment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/deployments/{id}/rollback:
+    post:
+      tags:
+        - Deployments
+      summary: Rollback deployment
+      description: Rollback to a previous deployment version
+      operationId: rollbackDeployment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deployment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetVersion
+              properties:
+                targetVersion:
+                  type: string
+                  example: "v1.2.0"
+                  description: Target version to rollback to
+                reason:
+                  type: string
+                  example: "Rollback due to performance issues"
+                  description: Reason for rollback
+      responses:
+        '200':
+          description: Rollback initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Deployment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/applications:
+    get:
+      tags:
+        - Applications
+      summary: List applications
+      description: Retrieve a list of applications
+      operationId: listApplications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of applications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Application'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Applications
+      summary: Create application
+      description: Create a new application
+      operationId: createApplication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplicationRequest'
+      responses:
+        '201':
+          description: Application created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Application'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/applications/{id}:
+    get:
+      tags:
+        - Applications
+      summary: Get application details
+      description: Retrieve detailed information about an application
+      operationId: getApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Application ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Application'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Applications
+      summary: Update application
+      description: Update application configuration
+      operationId: updateApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Application ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplicationRequest'
+      responses:
+        '200':
+          description: Application updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Application'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Applications
+      summary: Delete application
+      description: Delete an application and all its deployments
+      operationId: deleteApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Application ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Application deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/environments:
+    get:
+      tags:
+        - Environments
+      summary: List environments
+      description: Retrieve a list of environments
+      operationId: listEnvironments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of environments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Environment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        applicationId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Application ID
+        environmentId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+          description: Environment ID
+        version:
+          type: string
+          example: "v1.2.3"
+          description: Deployment version
+        status:
+          type: string
+          enum: [pending, building, deploying, deployed, failed, rolling_back]
+          example: "deployed"
+          description: Deployment status
+        strategy:
+          type: string
+          enum: [rolling, blue_green, canary]
+          example: "rolling"
+          description: Deployment strategy
+        buildUrl:
+          type: string
+          format: uri
+          example: "https://build.frontal.dev/build/123"
+          description: Build URL
+        buildLog:
+          type: string
+          description: Build log output
+        deployLog:
+          type: string
+          description: Deployment log output
+        url:
+          type: string
+          format: uri
+          example: "https://myapp.frontal.dev"
+          description: Application URL
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        startedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:01:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:05:00Z"
+
+    CreateDeploymentRequest:
+      type: object
+      required:
+        - applicationId
+        - environmentId
+        - version
+        - buildConfig
+      properties:
+        applicationId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Application ID
+        environmentId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+          description: Environment ID
+        version:
+          type: string
+          example: "v1.2.3"
+          description: Deployment version
+        strategy:
+          type: string
+          enum: [rolling, blue_green, canary]
+          default: "rolling"
+          description: Deployment strategy
+        buildConfig:
+          $ref: '#/components/schemas/BuildConfig'
+        environment:
+          type: object
+          description: Environment variables for this deployment
+          example:
+            NODE_ENV: "production"
+            API_URL: "https://api.frontal.dev"
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          example: "my-application"
+          description: Application name
+        description:
+          type: string
+          example: "A sample web application"
+          description: Application description
+        repository:
+          type: string
+          format: uri
+          example: "https://github.com/user/my-app"
+          description: Git repository URL
+        buildConfig:
+          $ref: '#/components/schemas/BuildConfig'
+        defaultStrategy:
+          type: string
+          enum: [rolling, blue_green, canary]
+          default: "rolling"
+          description: Default deployment strategy
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    CreateApplicationRequest:
+      type: object
+      required:
+        - name
+        - repository
+        - buildConfig
+      properties:
+        name:
+          type: string
+          example: "my-application"
+          description: Application name
+        description:
+          type: string
+          example: "A sample web application"
+          description: Application description
+        repository:
+          type: string
+          format: uri
+          example: "https://github.com/user/my-app"
+          description: Git repository URL
+        buildConfig:
+          $ref: '#/components/schemas/BuildConfig'
+        defaultStrategy:
+          type: string
+          enum: [rolling, blue_green, canary]
+          default: "rolling"
+          description: Default deployment strategy
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+
+    UpdateApplicationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "updated-application"
+          description: Application name
+        description:
+          type: string
+          example: "Updated application description"
+          description: Application description
+        repository:
+          type: string
+          format: uri
+          example: "https://github.com/user/my-updated-app"
+          description: Git repository URL
+        buildConfig:
+          $ref: '#/components/schemas/BuildConfig'
+        defaultStrategy:
+          type: string
+          enum: [rolling, blue_green, canary]
+          description: Default deployment strategy
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+
+    Environment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        name:
+          type: string
+          example: "production"
+          description: Environment name
+        description:
+          type: string
+          example: "Production environment"
+          description: Environment description
+        type:
+          type: string
+          enum: [development, staging, production]
+          example: "production"
+          description: Environment type
+        infrastructure:
+          $ref: '#/components/schemas/Infrastructure'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    BuildConfig:
+      type: object
+      required:
+        - buildCommand
+        - outputDirectory
+      properties:
+        buildCommand:
+          type: string
+          example: "npm run build"
+          description: Command to build the application
+        outputDirectory:
+          type: string
+          example: "dist"
+          description: Directory containing build artifacts
+        dockerfile:
+          type: string
+          example: "Dockerfile"
+          description: Dockerfile path (if using Docker)
+        buildArgs:
+          type: object
+          description: Build arguments
+          example:
+            NODE_VERSION: "18"
+            BUILD_ENV: "production"
+
+    HealthCheck:
+      type: object
+      properties:
+        path:
+          type: string
+          example: "/health"
+          description: Health check endpoint path
+        method:
+          type: string
+          enum: [GET, POST]
+          default: "GET"
+          description: HTTP method for health check
+        expectedStatus:
+          type: integer
+          default: 200
+          description: Expected HTTP status code
+        timeout:
+          type: integer
+          default: 30
+          description: Health check timeout in seconds
+        interval:
+          type: integer
+          default: 60
+          description: Health check interval in seconds
+
+    Infrastructure:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [aws, gcp, azure]
+          example: "aws"
+          description: Cloud provider
+        region:
+          type: string
+          example: "us-east-1"
+          description: Cloud region
+        cluster:
+          type: string
+          example: "frontal-prod"
+          description: Kubernetes cluster name
+        resources:
+          type: object
+          description: Resource allocation
+          example:
+            cpu: "500m"
+            memory: "512Mi"
+            replicas: 3
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+          description: Current page number
+        limit:
+          type: integer
+          example: 20
+          description: Items per page
+        total:
+          type: integer
+          example: 100
+          description: Total number of items
+        totalPages:
+          type: integer
+          example: 5
+          description: Total number of pages
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication service
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Validation error"
+              timestamp:
+                type: string
+                format: date-time
+
+    Unauthorized:
+      description: Unauthorized access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Authentication required"
+              timestamp:
+                type: string
+                format: date-time
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Resource not found"
+              timestamp:
+                type: string
+                format: date-time
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Internal server error"
+              timestamp:
+                type: string
+                format: date-time

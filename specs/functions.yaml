@@ -1,0 +1,783 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Functions Service API
+  description: |-
+    Serverless functions management service for deploying, managing, and executing edge functions.
+
+    **Features:**
+    - Function deployment and management
+    - Project-based organization
+    - Runtime configuration
+    - Deployment history
+    - Function monitoring
+    - Edge execution
+
+  termsOfService: https://frontal.com/terms
+  contact:
+    name: API Support
+    url: https://github.com/frontal-labs/functions-service/issues
+  license:
+    name: MIT License
+    url: https://github.com/frontal-labs/functions-service/blob/main/LICENSE
+
+servers:
+  - url: "http://localhost:3000"
+    description: Development server
+  - url: "https://functions.frontal.dev"
+    description: Production server
+
+tags:
+  - name: Functions
+    description: Function management operations
+  - name: Projects
+    description: Project management operations
+  - name: Runtime
+    description: Runtime configuration operations
+  - name: Deployments
+    description: Deployment management
+
+paths:
+  /v1/functions:
+    get:
+      tags:
+        - Functions
+      summary: List functions
+      description: Retrieve a paginated list of functions with optional filtering
+      operationId: listFunctions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: query
+          description: Filter by project ID
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: search
+          in: query
+          description: Search term
+          schema:
+            type: string
+        - name: runtime
+          in: query
+          description: Filter by runtime
+          schema:
+            type: string
+            enum: [nodejs18, nodejs20, python310, python311]
+      responses:
+        '200':
+          description: Paginated list of functions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Function'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Functions
+      summary: Create a new function
+      description: Deploy a new serverless function
+      operationId: createFunction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFunctionRequest'
+      responses:
+        '201':
+          description: Function created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Function'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/functions/{id}:
+    get:
+      tags:
+        - Functions
+      summary: Get function details
+      description: Retrieve detailed information about a specific function
+      operationId: getFunction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Function ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Function details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Function'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Functions
+      summary: Update function
+      description: Update function configuration or code
+      operationId: updateFunction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Function ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFunctionRequest'
+      responses:
+        '200':
+          description: Function updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Function'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Functions
+      summary: Delete function
+      description: Remove a function and all its deployments
+      operationId: deleteFunction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Function ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Function deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/functions/{id}/deploy:
+    post:
+      tags:
+        - Functions
+      summary: Deploy function
+      description: Deploy a new version of the function
+      operationId: deployFunction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Function ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeployFunctionRequest'
+      responses:
+        '200':
+          description: Function deployment started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Deployment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/functions/{id}/deployments:
+    get:
+      tags:
+        - Deployments
+      summary: List function deployments
+      description: Get deployment history for a function
+      operationId: listFunctionDeployments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Function ID
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of deployments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deployment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/projects:
+    get:
+      tags:
+        - Projects
+      summary: List projects
+      description: Retrieve a list of projects
+      operationId: listProjects
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/runtime:
+    get:
+      tags:
+        - Runtime
+      summary: List available runtimes
+      description: Get list of supported function runtimes
+      operationId: listRuntimes
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of available runtimes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Runtime'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Function:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          example: "my-function"
+          description: Function name
+        description:
+          type: string
+          example: "A sample serverless function"
+          description: Function description
+        projectId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Project ID
+        runtime:
+          $ref: '#/components/schemas/Runtime'
+        memory:
+          type: integer
+          example: 256
+          description: Memory allocation in MB
+        timeout:
+          type: integer
+          example: 30
+          description: Timeout in seconds
+        environment:
+          type: object
+          description: Environment variables
+          example:
+            NODE_ENV: "production"
+            API_KEY: "secret-key"
+        status:
+          type: string
+          enum: [active, inactive, deploying, failed]
+          example: "active"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        latestDeployment:
+          $ref: '#/components/schemas/Deployment'
+
+    CreateFunctionRequest:
+      type: object
+      required:
+        - name
+        - runtime
+        - code
+      properties:
+        name:
+          type: string
+          example: "my-function"
+          description: Function name
+        description:
+          type: string
+          example: "A sample serverless function"
+          description: Function description
+        projectId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Project ID
+        runtime:
+          $ref: '#/components/schemas/Runtime'
+        code:
+          type: string
+          example: "export default function handler(event) { return { hello: 'world' }; }"
+          description: Function code
+        memory:
+          type: integer
+          example: 256
+          minimum: 128
+          maximum: 1024
+          description: Memory allocation in MB
+        timeout:
+          type: integer
+          example: 30
+          minimum: 1
+          maximum: 300
+          description: Timeout in seconds
+        environment:
+          type: object
+          description: Environment variables
+          example:
+            NODE_ENV: "production"
+
+    UpdateFunctionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "updated-function"
+          description: Function name
+        description:
+          type: string
+          example: "Updated function description"
+          description: Function description
+        memory:
+          type: integer
+          example: 512
+          minimum: 128
+          maximum: 1024
+          description: Memory allocation in MB
+        timeout:
+          type: integer
+          example: 60
+          minimum: 1
+          maximum: 300
+          description: Timeout in seconds
+        environment:
+          type: object
+          description: Environment variables
+          example:
+            NODE_ENV: "production"
+
+    DeployFunctionRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "export default function handler(event) { return { hello: 'world v2' }; }"
+          description: Updated function code
+        environment:
+          type: object
+          description: Environment variables for this deployment
+          example:
+            NODE_ENV: "production"
+
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        functionId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        version:
+          type: string
+          example: "v1.0.0"
+          description: Deployment version
+        status:
+          type: string
+          enum: [pending, building, deployed, failed, rolling_back]
+          example: "deployed"
+        memory:
+          type: integer
+          example: 256
+          description: Memory allocation in MB
+        timeout:
+          type: integer
+          example: 30
+          description: Timeout in seconds
+        environment:
+          type: object
+          description: Environment variables
+        buildLog:
+          type: string
+          description: Build log output
+        url:
+          type: string
+          format: uri
+          example: "https://functions.frontal.dev/my-function"
+          description: Function URL
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:05:00Z"
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          example: "my-project"
+          description: Project name
+        description:
+          type: string
+          example: "A sample project"
+          description: Project description
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    Runtime:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "nodejs20"
+          description: Runtime name
+        version:
+          type: string
+          example: "20.0.0"
+          description: Runtime version
+        language:
+          type: string
+          example: "JavaScript"
+          description: Programming language
+        description:
+          type: string
+          example: "Node.js 20 runtime"
+          description: Runtime description
+        defaultMemory:
+          type: integer
+          example: 256
+          description: Default memory allocation
+        defaultTimeout:
+          type: integer
+          example: 30
+          description: Default timeout
+        supported:
+          type: boolean
+          example: true
+          description: Whether this runtime is supported
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+          description: Current page number
+        limit:
+          type: integer
+          example: 20
+          description: Items per page
+        total:
+          type: integer
+          example: 100
+          description: Total number of items
+        totalPages:
+          type: integer
+          example: 5
+          description: Total number of pages
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication service
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Validation error"
+              timestamp:
+                type: string
+                format: date-time
+
+    Unauthorized:
+      description: Unauthorized access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Authentication required"
+              timestamp:
+                type: string
+                format: date-time
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Resource not found"
+              timestamp:
+                type: string
+                format: date-time
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Internal server error"
+              timestamp:
+                type: string
+                format: date-time

@@ -1,0 +1,898 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Feedback Service API
+  description: |-
+    User feedback and survey management service for collecting and analyzing user feedback.
+
+    **Features:**
+    - Feedback collection and management
+    - Survey creation and distribution
+    - Sentiment analysis
+    - Feedback categorization
+    - Analytics and reporting
+    - Feedback response management
+
+  termsOfService: https://frontal.com/terms
+  contact:
+    name: API Support
+    url: https://github.com/frontal-labs/feedback-service/issues
+  license:
+    name: MIT License
+    url: https://github.com/frontal-labs/feedback-service/blob/main/LICENSE
+
+servers:
+  - url: "http://localhost:3008"
+    description: Development server
+  - url: "https://feedback.frontal.dev"
+    description: Production server
+
+tags:
+  - name: Feedback
+    description: Feedback management operations
+  - name: Surveys
+    description: Survey operations
+  - name: Analytics
+    description: Feedback analytics operations
+  - name: Responses
+    description: Feedback response operations
+
+paths:
+  /v1/feedback:
+    get:
+      tags:
+        - Feedback
+      summary: List feedback
+      description: Retrieve a paginated list of feedback entries
+      operationId: listFeedback
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum: [bug, feature_request, general, complaint, praise]
+        - name: sentiment
+          in: query
+          description: Filter by sentiment
+          schema:
+            type: string
+            enum: [positive, neutral, negative]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of feedback entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Feedback'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Feedback
+      summary: Submit feedback
+      description: Submit new feedback
+      operationId: submitFeedback
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitFeedbackRequest'
+      responses:
+        '201':
+          description: Feedback submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Feedback'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/feedback/{id}:
+    get:
+      tags:
+        - Feedback
+      summary: Get feedback details
+      description: Retrieve detailed information about feedback
+      operationId: getFeedback
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Feedback ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feedback details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Feedback'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/surveys:
+    get:
+      tags:
+        - Surveys
+      summary: List surveys
+      description: Retrieve a list of available surveys
+      operationId: listSurveys
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [draft, active, completed, archived]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of surveys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Survey'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Surveys
+      summary: Create survey
+      description: Create a new survey
+      operationId: createSurvey
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSurveyRequest'
+      responses:
+        '201':
+          description: Survey created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Survey'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/surveys/{id}/responses:
+    get:
+      tags:
+        - Surveys
+      summary: Get survey responses
+      description: Retrieve responses for a specific survey
+      operationId: getSurveyResponses
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Survey ID
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Survey responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SurveyResponse'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/analytics/feedback:
+    get:
+      tags:
+        - Analytics
+      summary: Get feedback analytics
+      description: Retrieve feedback analytics and insights
+      operationId: getFeedbackAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: Time period for analytics
+          schema:
+            type: string
+            enum: [1d, 7d, 30d, 90d]
+            default: 30d
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum: [bug, feature_request, general, complaint, praise]
+      responses:
+        '200':
+          description: Feedback analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/FeedbackAnalytics'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        userId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: User ID (optional for anonymous feedback)
+        type:
+          type: string
+          enum: [feedback, bug_report, feature_request]
+          example: "feedback"
+          description: Feedback type
+        category:
+          type: string
+          enum: [bug, feature_request, general, complaint, praise]
+          example: "feature_request"
+          description: Feedback category
+        title:
+          type: string
+          example: "Add dark mode support"
+          description: Feedback title
+        content:
+          type: string
+          example: "It would be great to have a dark mode option for better eye comfort during night usage."
+          description: Feedback content
+        sentiment:
+          type: string
+          enum: [positive, neutral, negative]
+          example: "positive"
+          description: Analyzed sentiment
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          example: "medium"
+          description: Feedback priority
+        status:
+          type: string
+          enum: [new, in_review, addressed, closed]
+          example: "new"
+          description: Feedback status
+        tags:
+          type: array
+          items:
+            type: string
+            example: ["ui", "feature", "dark-mode"]
+          description: Feedback tags
+        metadata:
+          type: object
+          description: Additional metadata
+          example:
+            userAgent: "Mozilla/5.0..."
+            platform: "web"
+            version: "1.2.0"
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackResponse'
+          description: Feedback responses
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    SubmitFeedbackRequest:
+      type: object
+      required:
+        - type
+        - content
+      properties:
+        userId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: User ID (optional for anonymous feedback)
+        type:
+          type: string
+          enum: [feedback, bug_report, feature_request]
+          example: "feedback"
+          description: Feedback type
+        category:
+          type: string
+          enum: [bug, feature_request, general, complaint, praise]
+          example: "feature_request"
+          description: Feedback category
+        title:
+          type: string
+          example: "Add dark mode support"
+          description: Feedback title
+        content:
+          type: string
+          example: "It would be great to have a dark mode option for better eye comfort during night usage."
+          description: Feedback content
+        tags:
+          type: array
+          items:
+            type: string
+            example: ["ui", "feature", "dark-mode"]
+          description: Feedback tags
+        metadata:
+          type: object
+          description: Additional metadata
+          example:
+            userAgent: "Mozilla/5.0..."
+            platform: "web"
+            version: "1.2.0"
+
+    FeedbackResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        feedbackId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+          description: Feedback ID
+        responderId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440003"
+          description: Responder ID
+        content:
+          type: string
+          example: "Thank you for your feedback! We're considering dark mode for our next release."
+          description: Response content
+        type:
+          type: string
+          enum: [acknowledgment, update, resolution]
+          example: "acknowledgment"
+          description: Response type
+        isPublic:
+          type: boolean
+          default: false
+          example: true
+          description: Whether response is visible to users
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:30:00Z"
+          description: Response timestamp
+
+    Survey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440003"
+        title:
+          type: string
+          example: "User Satisfaction Survey"
+          description: Survey title
+        description:
+          type: string
+          example: "Help us improve our services by sharing your experience"
+          description: Survey description
+        status:
+          type: string
+          enum: [draft, active, completed, archived]
+          example: "active"
+          description: Survey status
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyQuestion'
+          description: Survey questions
+        targetAudience:
+          type: array
+          items:
+            type: string
+            enum: [all_users, premium_users, new_users, active_users]
+          example: ["all_users"]
+          description: Target audience
+        maxResponses:
+          type: integer
+          example: 1000
+          description: Maximum number of responses
+        responseCount:
+          type: integer
+          example: 250
+          description: Current response count
+        startDate:
+          type: string
+          format: date-time
+          example: "2023-12-01T00:00:00Z"
+          description: Survey start date
+        endDate:
+          type: string
+          format: date-time
+          example: "2023-12-31T23:59:59Z"
+          description: Survey end date
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    CreateSurveyRequest:
+      type: object
+      required:
+        - title
+        - description
+        - questions
+      properties:
+        title:
+          type: string
+          example: "User Satisfaction Survey"
+          description: Survey title
+        description:
+          type: string
+          example: "Help us improve our services by sharing your experience"
+          description: Survey description
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyQuestion'
+          description: Survey questions
+        targetAudience:
+          type: array
+          items:
+            type: string
+            enum: [all_users, premium_users, new_users, active_users]
+          example: ["all_users"]
+          description: Target audience
+        maxResponses:
+          type: integer
+          example: 1000
+          description: Maximum number of responses
+        startDate:
+          type: string
+          format: date-time
+          example: "2023-12-01T00:00:00Z"
+          description: Survey start date
+        endDate:
+          type: string
+          format: date-time
+          example: "2023-12-31T23:59:59Z"
+          description: Survey end date
+
+    SurveyQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440004"
+        type:
+          type: string
+          enum: [multiple_choice, rating, text, boolean, nps]
+          example: "rating"
+          description: Question type
+        question:
+          type: string
+          example: "How satisfied are you with our service?"
+          description: Question text
+        required:
+          type: boolean
+          default: true
+          description: Whether question is required
+        options:
+          type: array
+          items:
+            type: string
+          example: ["Very satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very dissatisfied"]
+          description: Available options (for multiple choice)
+        scale:
+          type: object
+          properties:
+            min:
+              type: integer
+              example: 1
+            max:
+              type: integer
+              example: 5
+          description: Rating scale (for rating questions)
+        order:
+          type: integer
+          example: 1
+          description: Question order
+
+    SurveyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440005"
+        surveyId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440003"
+          description: Survey ID
+        userId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: User ID
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyAnswer'
+          description: Survey answers
+        completedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:30:00Z"
+          description: Completion timestamp
+
+    SurveyAnswer:
+      type: object
+      properties:
+        questionId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440004"
+          description: Question ID
+        answer:
+          oneOf:
+            - type: string
+            - type: number
+            - type: array
+            - type: boolean
+          example: "Satisfied"
+          description: Answer value
+        responseTime:
+          type: integer
+          example: 15
+          description: Time taken to answer in seconds
+
+    FeedbackAnalytics:
+      type: object
+      properties:
+        totalFeedback:
+          type: integer
+          example: 1000
+          description: Total feedback count
+        categoryBreakdown:
+          type: object
+          properties:
+            bug:
+              type: integer
+              example: 250
+            feature_request:
+              type: integer
+              example: 400
+            general:
+              type: integer
+              example: 200
+            complaint:
+              type: integer
+              example: 100
+            praise:
+              type: integer
+              example: 50
+          description: Feedback by category
+        sentimentBreakdown:
+          type: object
+          properties:
+            positive:
+              type: integer
+              example: 300
+            neutral:
+              type: integer
+              example: 500
+            negative:
+              type: integer
+              example: 200
+          description: Feedback by sentiment
+        trendData:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: "2023-12-01"
+              count:
+                type: integer
+                example: 35
+              sentiment:
+                type: number
+                example: 0.65
+          description: Feedback trend data
+        topTags:
+          type: array
+          items:
+            type: object
+            properties:
+              tag:
+                type: string
+                example: "ui"
+              count:
+                type: integer
+                example: 125
+          description: Most common tags
+        averageResponseTime:
+          type: number
+          example: 4.5
+          description: Average response time in hours
+        resolutionRate:
+          type: number
+          format: percentage
+          example: 0.75
+          description: Feedback resolution rate
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+          description: Current page number
+        limit:
+          type: integer
+          example: 20
+          description: Items per page
+        total:
+          type: integer
+          example: 100
+          description: Total number of items
+        totalPages:
+          type: integer
+          example: 5
+          description: Total number of pages
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication service
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Validation error"
+              timestamp:
+                type: string
+                format: date-time
+
+    Unauthorized:
+      description: Unauthorized access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Authentication required"
+              timestamp:
+                type: string
+                format: date-time
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Resource not found"
+              timestamp:
+                type: string
+                format: date-time
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Internal server error"
+              timestamp:
+                type: string
+                format: date-time

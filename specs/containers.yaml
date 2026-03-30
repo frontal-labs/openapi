@@ -1,0 +1,980 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Containers Service API
+  description: |-
+    Container management service for deploying, scaling, and managing containerized applications.
+
+    **Features:**
+    - Container deployment and management
+    - Multi-cloud container orchestration
+    - Auto-scaling and load balancing
+    - Health monitoring and logging
+    - Container networking
+    - Resource management
+
+  termsOfService: https://frontal.com/terms
+  contact:
+    name: API Support
+    url: https://github.com/frontal-labs/containers-service/issues
+  license:
+    name: MIT License
+    url: https://github.com/frontal-labs/containers-service/blob/main/LICENSE
+
+servers:
+  - url: "http://localhost:3005"
+    description: Development server
+  - url: "https://containers.frontal.dev"
+    description: Production server
+
+tags:
+  - name: Containers
+    description: Container management operations
+  - name: Services
+    description: Service management operations
+  - name: Scaling
+    description: Auto-scaling operations
+  - name: Networking
+    description: Container networking operations
+
+paths:
+  /v1/containers:
+    get:
+      tags:
+        - Containers
+      summary: List containers
+      description: Retrieve a paginated list of containers with optional filtering
+      operationId: listContainers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: query
+          description: Filter by project ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by container status
+          schema:
+            type: string
+            enum: [running, stopped, pending, failed]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of containers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Container'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Containers
+      summary: Create container
+      description: Deploy a new container
+      operationId: createContainer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContainerRequest'
+      responses:
+        '201':
+          description: Container created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Container'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/containers/{id}:
+    get:
+      tags:
+        - Containers
+      summary: Get container details
+      description: Retrieve detailed information about a container
+      operationId: getContainer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Container details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Container'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Containers
+      summary: Update container
+      description: Update container configuration
+      operationId: updateContainer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContainerRequest'
+      responses:
+        '200':
+          description: Container updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Container'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Containers
+      summary: Delete container
+      description: Delete a container
+      operationId: deleteContainer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Container deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/containers/{id}/start:
+    post:
+      tags:
+        - Containers
+      summary: Start container
+      description: Start a stopped container
+      operationId: startContainer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Container started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Container'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/containers/{id}/stop:
+    post:
+      tags:
+        - Containers
+      summary: Stop container
+      description: Stop a running container
+      operationId: stopContainer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Container stopped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Container'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/containers/{id}/restart:
+    post:
+      tags:
+        - Containers
+      summary: Restart container
+      description: Restart a container
+      operationId: restartContainer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Container restarted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Container'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/containers/{id}/logs:
+    get:
+      tags:
+        - Containers
+      summary: Get container logs
+      description: Retrieve container logs
+      operationId: getContainerLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+        - name: lines
+          in: query
+          description: Number of lines to retrieve
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: since
+          in: query
+          description: Get logs since timestamp
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Container logs
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "2023-12-01T12:00:00Z [INFO] Container started\n2023-12-01T12:00:01Z [INFO] Application ready"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/containers/{id}/metrics:
+    get:
+      tags:
+        - Containers
+      summary: Get container metrics
+      description: Retrieve container performance metrics
+      operationId: getContainerMetrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Container ID
+          schema:
+            type: string
+            format: uuid
+        - name: period
+          in: query
+          description: Time period for metrics
+          schema:
+            type: string
+            enum: [1h, 6h, 24h, 7d]
+            default: 1h
+      responses:
+        '200':
+          description: Container metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ContainerMetrics'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/services:
+    get:
+      tags:
+        - Services
+      summary: List services
+      description: Retrieve a list of container services
+      operationId: listServices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: query
+          description: Filter by project ID
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Container:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          example: "web-app-container"
+          description: Container name
+        description:
+          type: string
+          example: "Main web application container"
+          description: Container description
+        projectId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Project ID
+        image:
+          type: string
+          example: "nginx:latest"
+          description: Container image
+        status:
+          type: string
+          enum: [running, stopped, pending, failed, restarting]
+          example: "running"
+          description: Container status
+        resources:
+          $ref: '#/components/schemas/ContainerResources'
+        networking:
+          $ref: '#/components/schemas/ContainerNetworking'
+        environment:
+          type: object
+          description: Environment variables
+          example:
+            NODE_ENV: "production"
+            PORT: "3000"
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+        restartPolicy:
+          type: string
+          enum: [always, on-failure, unless-stopped, never]
+          default: "unless-stopped"
+          description: Restart policy
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        startedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:01:00Z"
+
+    CreateContainerRequest:
+      type: object
+      required:
+        - name
+        - image
+      properties:
+        name:
+          type: string
+          example: "web-app-container"
+          description: Container name
+        description:
+          type: string
+          example: "Main web application container"
+          description: Container description
+        projectId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Project ID
+        image:
+          type: string
+          example: "nginx:latest"
+          description: Container image
+        resources:
+          $ref: '#/components/schemas/ContainerResources'
+        networking:
+          $ref: '#/components/schemas/ContainerNetworking'
+        environment:
+          type: object
+          description: Environment variables
+          example:
+            NODE_ENV: "production"
+            PORT: "3000"
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+        restartPolicy:
+          type: string
+          enum: [always, on-failure, unless-stopped, never]
+          default: "unless-stopped"
+          description: Restart policy
+
+    UpdateContainerRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "updated-container"
+          description: Container name
+        description:
+          type: string
+          example: "Updated container description"
+          description: Container description
+        resources:
+          $ref: '#/components/schemas/ContainerResources'
+        networking:
+          $ref: '#/components/schemas/ContainerNetworking'
+        environment:
+          type: object
+          description: Environment variables
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+        restartPolicy:
+          type: string
+          enum: [always, on-failure, unless-stopped, never]
+          description: Restart policy
+
+    ContainerResources:
+      type: object
+      properties:
+        cpu:
+          type: string
+          example: "500m"
+          description: CPU allocation
+        memory:
+          type: string
+          example: "512Mi"
+          description: Memory allocation
+        storage:
+          type: string
+          example: "1Gi"
+          description: Storage allocation
+        gpu:
+          type: integer
+          example: 1
+          description: GPU units (if applicable)
+
+    ContainerNetworking:
+      type: object
+      properties:
+        ports:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortMapping'
+          description: Port mappings
+        networks:
+          type: array
+          items:
+            type: string
+            example: ["frontend-network", "backend-network"]
+          description: Network names
+        dns:
+          type: array
+          items:
+            type: string
+            example: ["8.8.8.8", "8.8.4.4"]
+          description: DNS servers
+
+    PortMapping:
+      type: object
+      required:
+        - containerPort
+      properties:
+        containerPort:
+          type: integer
+          example: 3000
+          description: Container port
+        hostPort:
+          type: integer
+          example: 80
+          description: Host port
+        protocol:
+          type: string
+          enum: [tcp, udp]
+          default: "tcp"
+          description: Protocol
+        name:
+          type: string
+          example: "http"
+          description: Port name
+
+    HealthCheck:
+      type: object
+      properties:
+        path:
+          type: string
+          example: "/health"
+          description: Health check endpoint
+        method:
+          type: string
+          enum: [GET, POST]
+          default: "GET"
+          description: HTTP method
+        expectedStatus:
+          type: integer
+          default: 200
+          description: Expected HTTP status code
+        interval:
+          type: integer
+          default: 30
+          description: Check interval in seconds
+        timeout:
+          type: integer
+          default: 5
+          description: Check timeout in seconds
+        retries:
+          type: integer
+          default: 3
+          description: Number of retries before marking unhealthy
+
+    ContainerMetrics:
+      type: object
+      properties:
+        cpu:
+          type: object
+          properties:
+            usage:
+              type: number
+              example: 0.45
+              description: CPU usage percentage
+            limit:
+              type: number
+              example: 0.5
+              description: CPU limit
+        memory:
+          type: object
+          properties:
+            usage:
+              type: integer
+              example: 268435456
+              description: Memory usage in bytes
+            limit:
+              type: integer
+              example: 536870912
+              description: Memory limit in bytes
+        network:
+          type: object
+          properties:
+            bytesIn:
+              type: integer
+              example: 1073741824
+              description: Bytes received
+            bytesOut:
+              type: integer
+              example: 2147483648
+              description: Bytes sent
+        storage:
+          type: object
+          properties:
+            used:
+              type: integer
+              example: 1073741824
+              description: Storage used in bytes
+            limit:
+              type: integer
+              example: 2147483648
+              description: Storage limit in bytes
+        uptime:
+          type: integer
+          example: 86400
+          description: Uptime in seconds
+        restartCount:
+          type: integer
+          example: 2
+          description: Number of restarts
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        name:
+          type: string
+          example: "web-service"
+          description: Service name
+        description:
+          type: string
+          example: "Web application service"
+          description: Service description
+        projectId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Project ID
+        containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Container'
+          description: Service containers
+        loadBalancer:
+          $ref: '#/components/schemas/LoadBalancer'
+        autoScaling:
+          $ref: '#/components/schemas/AutoScaling'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    LoadBalancer:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [round_robin, least_connections, ip_hash]
+          default: "round_robin"
+          description: Load balancing algorithm
+        ports:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortMapping'
+          description: Load balancer ports
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheck'
+        sessionAffinity:
+          type: boolean
+          default: false
+          description: Enable session affinity
+
+    AutoScaling:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: false
+          description: Enable auto-scaling
+        minReplicas:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Minimum number of replicas
+        maxReplicas:
+          type: integer
+          minimum: 1
+          default: 10
+          description: Maximum number of replicas
+        targetCpu:
+          type: number
+          minimum: 0
+          maximum: 100
+          default: 70
+          description: Target CPU utilization percentage
+        targetMemory:
+          type: number
+          minimum: 0
+          maximum: 100
+          default: 80
+          description: Target memory utilization percentage
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+          description: Current page number
+        limit:
+          type: integer
+          example: 20
+          description: Items per page
+        total:
+          type: integer
+          example: 100
+          description: Total number of items
+        totalPages:
+          type: integer
+          example: 5
+          description: Total number of pages
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication service
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Validation error"
+              timestamp:
+                type: string
+                format: date-time
+
+    Unauthorized:
+      description: Unauthorized access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Authentication required"
+              timestamp:
+                type: string
+                format: date-time
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Resource not found"
+              timestamp:
+                type: string
+                format: date-time
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Internal server error"
+              timestamp:
+                type: string
+                format: date-time

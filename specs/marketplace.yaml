@@ -1,0 +1,925 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Marketplace Service API
+  description: |-
+    Integration marketplace service for discovering, installing, and managing third-party integrations.
+
+    **Features:**
+    - Integration discovery and browsing
+    - Integration installation and management
+    - Marketplace analytics
+    - Integration reviews and ratings
+    - Developer portal for integration submission
+    - Integration usage tracking
+
+  termsOfService: https://frontal.com/terms
+  contact:
+    name: API Support
+    url: https://github.com/frontal-labs/marketplace-service/issues
+  license:
+    name: MIT License
+    url: https://github.com/frontal-labs/marketplace-service/blob/main/LICENSE
+
+servers:
+  - url: "http://localhost:3009"
+    description: Development server
+  - url: "https://marketplace.frontal.dev"
+    description: Production server
+
+tags:
+  - name: Integrations
+    description: Integration management operations
+  - name: Marketplace
+    description: Marketplace browsing operations
+  - name: Reviews
+    description: Review and rating operations
+  - name: Analytics
+    description: Marketplace analytics operations
+
+paths:
+  /v1/integrations:
+    get:
+      tags:
+        - Integrations
+      summary: List installed integrations
+      description: Retrieve a list of installed integrations for a user or organization
+      operationId: listIntegrations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: organizationId
+          in: query
+          description: Filter by organization ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [active, inactive, error, pending]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of installed integrations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InstalledIntegration'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Integrations
+      summary: Install integration
+      description: Install a new integration from the marketplace
+      operationId: installIntegration
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstallIntegrationRequest'
+      responses:
+        '201':
+          description: Integration installed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/InstalledIntegration'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/integrations/{id}:
+    get:
+      tags:
+        - Integrations
+      summary: Get integration details
+      description: Retrieve detailed information about an installed integration
+      operationId: getIntegration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Integration ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Integration details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/InstalledIntegration'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Integrations
+      summary: Update integration
+      description: Update integration configuration
+      operationId: updateIntegration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Integration ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIntegrationRequest'
+      responses:
+        '200':
+          description: Integration updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/InstalledIntegration'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Integrations
+      summary: Uninstall integration
+      description: Uninstall an integration
+      operationId: uninstallIntegration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Integration ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Integration uninstalled successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/marketplace/listings:
+    get:
+      tags:
+        - Marketplace
+      summary: Browse marketplace
+      description: Browse available integrations in the marketplace
+      operationId: browseMarketplace
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum: [analytics, communication, crm, development, marketing, productivity, security]
+        - name: pricing
+          in: query
+          description: Filter by pricing model
+          schema:
+            type: string
+            enum: [free, freemium, paid, enterprise]
+        - name: rating
+          in: query
+          description: Minimum rating
+          schema:
+            type: number
+            minimum: 1
+            maximum: 5
+        - name: search
+          in: query
+          description: Search term
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [popular, newest, rating, name]
+            default: "popular"
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Marketplace listings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MarketplaceListing'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/marketplace/listings/{id}:
+    get:
+      tags:
+        - Marketplace
+      summary: Get marketplace listing
+      description: Retrieve detailed information about a marketplace listing
+      operationId: getMarketplaceListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Listing ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Marketplace listing details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/MarketplaceListing'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/reviews:
+    get:
+      tags:
+        - Reviews
+      summary: List reviews
+      description: Retrieve reviews for integrations
+      operationId: listReviews
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: integrationId
+          in: query
+          description: Filter by integration ID
+          schema:
+            type: string
+            format: uuid
+        - name: rating
+          in: query
+          description: Filter by rating
+          schema:
+            type: number
+            minimum: 1
+            maximum: 5
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Reviews
+      summary: Create review
+      description: Create a review for an integration
+      operationId: createReview
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Review'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    InstalledIntegration:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        listingId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Marketplace listing ID
+        organizationId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+          description: Organization ID
+        name:
+          type: string
+          example: "Slack Integration"
+          description: Integration name
+        description:
+          type: string
+          example: "Connect Frontal with Slack for notifications"
+          description: Integration description
+        status:
+          type: string
+          enum: [active, inactive, error, pending]
+          example: "active"
+          description: Integration status
+        configuration:
+          type: object
+          description: Integration configuration
+          example:
+            webhookUrl: "https://hooks.slack.com/services/..."
+            channel: "#general"
+            notifications: ["deployments", "errors"]
+        usage:
+          $ref: '#/components/schemas/IntegrationUsage'
+        lastSync:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+          description: Last synchronization timestamp
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    InstallIntegrationRequest:
+      type: object
+      required:
+        - listingId
+        - organizationId
+      properties:
+        listingId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Marketplace listing ID
+        organizationId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+          description: Organization ID
+        configuration:
+          type: object
+          description: Integration configuration
+          example:
+            webhookUrl: "https://hooks.slack.com/services/..."
+            channel: "#general"
+            notifications: ["deployments", "errors"]
+
+    UpdateIntegrationRequest:
+      type: object
+      properties:
+        configuration:
+          type: object
+          description: Updated integration configuration
+          example:
+            webhookUrl: "https://hooks.slack.com/services/..."
+            channel: "#notifications"
+            notifications: ["deployments", "errors", "success"]
+
+    IntegrationUsage:
+      type: object
+      properties:
+        apiCalls:
+          type: integer
+          example: 12500
+          description: Number of API calls made
+        dataTransferred:
+          type: integer
+          example: 1073741824
+          description: Data transferred in bytes
+        lastActivity:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+          description: Last activity timestamp
+        monthlyQuota:
+          type: object
+          properties:
+            used:
+              type: integer
+              example: 12500
+            limit:
+              type: integer
+              example: 50000
+            percentage:
+              type: number
+              format: percentage
+              example: 0.25
+          description: Monthly quota usage
+
+    MarketplaceListing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          example: "Slack Integration"
+          description: Integration name
+        description:
+          type: string
+          example: "Connect Frontal with Slack for real-time notifications and updates"
+          description: Integration description
+        category:
+          type: string
+          enum: [analytics, communication, crm, development, marketing, productivity, security]
+          example: "communication"
+          description: Integration category
+        developer:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Frontal Labs"
+            website:
+              type: string
+              format: uri
+              example: "https://frontal.com"
+            supportEmail:
+              type: string
+              format: email
+              example: "support@frontal.com"
+          description: Developer information
+        pricing:
+          $ref: '#/components/schemas/PricingModel'
+        features:
+          type: array
+          items:
+            type: string
+            example: ["Real-time notifications", "Custom channels", "Message formatting"]
+          description: Integration features
+        screenshots:
+          type: array
+          items:
+            type: string
+            format: uri
+            example: ["https://marketplace.frontal.dev/screenshots/slack-1.png"]
+          description: Integration screenshots
+        documentation:
+          type: object
+          properties:
+            readme:
+              type: string
+              format: uri
+              example: "https://docs.frontal.com/integrations/slack"
+            apiReference:
+              type: string
+              format: uri
+              example: "https://docs.frontal.com/integrations/slack/api"
+          description: Documentation links
+        requirements:
+          type: array
+          items:
+            type: string
+            example: ["Frontal account", "Slack workspace"]
+          description: Installation requirements
+        statistics:
+          type: object
+          properties:
+            installs:
+              type: integer
+              example: 12500
+            averageRating:
+              type: number
+              example: 4.5
+            reviewCount:
+              type: integer
+              example: 250
+          description: Integration statistics
+        status:
+          type: string
+          enum: [active, deprecated, removed]
+          example: "active"
+          description: Listing status
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    PricingModel:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [free, freemium, paid, enterprise]
+          example: "freemium"
+          description: Pricing type
+        freeTier:
+          type: object
+          properties:
+            features:
+              type: array
+              items:
+                type: string
+              example: ["Basic notifications", "Up to 1000 messages/month"]
+            limits:
+              type: object
+              example:
+                messages: 1000
+                users: 5
+          description: Free tier details
+        paidTier:
+          type: object
+          properties:
+            price:
+              type: number
+              example: 9.99
+            currency:
+              type: string
+              example: "USD"
+            period:
+              type: string
+              enum: [monthly, yearly]
+              example: "monthly"
+            features:
+              type: array
+              items:
+                type: string
+              example: ["Unlimited notifications", "Custom channels", "Advanced formatting"]
+          description: Paid tier details
+        enterpriseTier:
+          type: object
+          properties:
+            contactRequired:
+              type: boolean
+              default: true
+            features:
+              type: array
+              items:
+                type: string
+              example: ["Custom integrations", "Priority support", "SLA guarantee"]
+          description: Enterprise tier details
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440003"
+        integrationId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Integration ID
+        userId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440004"
+          description: User ID
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+          description: Rating (1-5)
+        title:
+          type: string
+          example: "Excellent integration!"
+          description: Review title
+        content:
+          type: string
+          example: "This Slack integration works perfectly and has saved us countless hours of manual notifications."
+          description: Review content
+        verified:
+          type: boolean
+          default: false
+          example: true
+          description: Whether review is from verified user
+        helpful:
+          type: integer
+          default: 0
+          example: 25
+          description: Number of helpful votes
+        response:
+          type: object
+          properties:
+            content:
+              type: string
+              example: "Thank you for your feedback! We're glad you're enjoying the integration."
+            respondedAt:
+              type: string
+              format: date-time
+              example: "2023-12-01T12:30:00Z"
+          description: Developer response
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T12:00:00Z"
+
+    CreateReviewRequest:
+      type: object
+      required:
+        - integrationId
+        - rating
+      properties:
+        integrationId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+          description: Integration ID
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+          description: Rating (1-5)
+        title:
+          type: string
+          example: "Excellent integration!"
+          description: Review title
+        content:
+          type: string
+          example: "This Slack integration works perfectly and has saved us countless hours of manual notifications."
+          description: Review content
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+          description: Current page number
+        limit:
+          type: integer
+          example: 20
+          description: Items per page
+        total:
+          type: integer
+          example: 100
+          description: Total number of items
+        totalPages:
+          type: integer
+          example: 5
+          description: Total number of pages
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication service
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Validation error"
+              timestamp:
+                type: string
+                format: date-time
+
+    Unauthorized:
+      description: Unauthorized access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Authentication required"
+              timestamp:
+                type: string
+                format: date-time
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Resource not found"
+              timestamp:
+                type: string
+                format: date-time
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Internal server error"
+              timestamp:
+                type: string
+                format: date-time
