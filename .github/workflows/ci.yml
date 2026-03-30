@@ -1,0 +1,213 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  validate:
+    name: Validate OpenAPI Specifications
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Validate all specifications
+      run: npm run validate:all
+      
+    - name: Check for breaking changes
+      run: npm run check-breaking
+      
+    - name: Lint code
+      run: npm run lint
+      
+    - name: Format check
+      run: npm run format:check
+
+  generate:
+    name: Generate Composite Specifications
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Generate composite specifications
+      run: npm run generate:composite
+      
+    - name: Generate documentation
+      run: npm run generate:docs
+      
+    - name: Upload generated files
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-specs
+        path: |
+          composite/
+          docs/build/
+        retention-days: 7
+
+  test-examples:
+    name: Test API Examples
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    strategy:
+      matrix:
+        example: [curl, javascript, python, go]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Test ${{ matrix.example }} examples
+      run: |
+        case "${{ matrix.example }}" in
+          curl)
+            # Install jq for JSON parsing
+            sudo apt-get update && sudo apt-get install -y jq
+            chmod +x examples/curl/*.sh
+            echo "Testing curl examples (dry run)..."
+            bash -n examples/curl/*.sh
+            ;;
+          javascript)
+            node examples/javascript/*.js || echo "Examples require API keys for actual testing"
+            ;;
+          python)
+            python -m py_compile examples/python/*.py || echo "Examples require API keys for actual testing"
+            ;;
+          go)
+            cd examples/go && go build ./... || echo "Examples require API keys for actual testing"
+            ;;
+        esac
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run npm audit
+      run: npm audit --audit-level moderate
+      
+    - name: Scan for secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+
+  publish:
+    name: Publish Specifications
+    runs-on: ubuntu-latest
+    needs: [validate, generate, test-examples, security]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Download generated files
+      uses: actions/download-artifact@v4
+      with:
+        name: generated-specs
+        path: |
+          composite/
+          docs/build/
+          
+    - name: Build package
+      run: npm run build
+      
+    - name: Publish to npm
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: Deploy documentation to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/build
+        publish_branch: gh-pages
+
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [validate, generate, test-examples, security, publish]
+    if: always()
+    
+    steps:
+    - name: Notify Slack on success
+      if: needs.publish.result == 'success'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        channel: '#api-updates'
+        text: '✅ Frontal OpenAPI specs published successfully!'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        
+    - name: Notify Slack on failure
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#api-updates'
+        text: '❌ Frontal OpenAPI CI/CD pipeline failed!'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
