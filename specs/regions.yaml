@@ -1,0 +1,493 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Regions Service API
+  description: |-
+    Geographic region management service for multi-region deployments and infrastructure.
+
+    **Features:**
+    - Region management and configuration
+    - Geographic distribution
+    - Multi-region deployment support
+    - Region health monitoring
+    - Cross-region networking
+
+  termsOfService: https://example.com/terms
+  contact:
+    name: API Support
+    url: https://github.com/frontal-labs/regions-service/issues
+  license:
+    name: MIT License
+    url: https://github.com/frontal-labs/regions-service/blob/main/LICENSE
+
+servers:
+  - url: "http://localhost:8085"
+    description: Development server
+  - url: "https://regions.example.com"
+    description: Production server
+
+tags:
+  - name: regions
+    description: Region management
+  - name: zones
+    description: Availability zone management
+  - name: deployments
+    description: Multi-region deployments
+
+paths:
+  /v1/regions:
+    get:
+      tags:
+        - regions
+      summary: List regions
+      description: Retrieve available geographic regions
+      operationId: listRegions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by region status
+          schema:
+            type: string
+            enum: [active, inactive, maintenance]
+        - name: provider
+          in: query
+          description: Filter by cloud provider
+          schema:
+            type: string
+            enum: [aws, gcp, azure]
+      responses:
+        '200':
+          description: List of regions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+    post:
+      tags:
+        - regions
+      summary: Create region
+      description: Add a new geographic region
+      operationId: createRegion
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRegionRequest'
+      responses:
+        '201':
+          description: Region created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  /v1/regions/{id}:
+    get:
+      tags:
+        - regions
+      summary: Get region
+      description: Retrieve details of a specific region
+      operationId: getRegion
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Region ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Region details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - regions
+      summary: Update region
+      description: Update region configuration
+      operationId: updateRegion
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Region ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRegionRequest'
+      responses:
+        '200':
+          description: Region updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  /v1/regions/{id}/health:
+    get:
+      tags:
+        - regions
+      summary: Get region health
+      description: Retrieve health status of a region
+      operationId: getRegionHealth
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Region ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Region health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  /v1/zones:
+    get:
+      tags:
+        - zones
+      summary: List availability zones
+      description: Retrieve availability zones for regions
+      operationId: listZones
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: region_id
+          in: query
+          description: Filter by region ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of availability zones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  /v1/deployments:
+    get:
+      tags:
+        - deployments
+      summary: List multi-region deployments
+      description: Retrieve deployments across regions
+      operationId: listDeployments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: region_id
+          in: query
+          description: Filter by region ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by deployment status
+          schema:
+            type: string
+            enum: [active, inactive, failed]
+      responses:
+        '200':
+          description: List of deployments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+    post:
+      tags:
+        - deployments
+      summary: Create multi-region deployment
+      description: Deploy services across multiple regions
+      operationId: createDeployment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeploymentRequest'
+      responses:
+        '201':
+          description: Deployment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+components:
+  schemas:
+    APIResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: Response data (varies by endpoint)
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "validation_error"
+        message:
+          type: string
+          example: "Invalid request parameters"
+
+    Region:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          example: "us-west-2"
+        display_name:
+          type: string
+          example: "US West (Oregon)"
+        provider:
+          type: string
+          enum: [aws, gcp, azure]
+          example: "aws"
+        country:
+          type: string
+          example: "US"
+        city:
+          type: string
+          example: "Portland"
+        latitude:
+          type: number
+          example: 45.5152
+        longitude:
+          type: number
+          example: -122.6784
+        status:
+          $ref: '#/components/schemas/RegionStatus'
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["compute", "storage", "networking"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    RegionStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - maintenance
+        - degraded
+      example: "active"
+
+    CreateRegionRequest:
+      type: object
+      required:
+        - name
+        - display_name
+        - provider
+        - country
+        - city
+      properties:
+        name:
+          type: string
+          example: "us-west-2"
+        display_name:
+          type: string
+          example: "US West (Oregon)"
+        provider:
+          type: string
+          enum: [aws, gcp, azure]
+          example: "aws"
+        country:
+          type: string
+          example: "US"
+        city:
+          type: string
+          example: "Portland"
+        latitude:
+          type: number
+          example: 45.5152
+        longitude:
+          type: number
+          example: -122.6784
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["compute", "storage", "networking"]
+
+    UpdateRegionRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          example: "US West (Oregon) Updated"
+        status:
+          $ref: '#/components/schemas/RegionStatus'
+        capabilities:
+          type: array
+          items:
+            type: string
+
+    AvailabilityZone:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          example: "us-west-2a"
+        region_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          type: string
+          enum: [active, inactive, maintenance]
+          example: "active"
+
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        name:
+          type: string
+          example: "global-webapp"
+        service_name:
+          type: string
+          example: "web-service"
+        regions:
+          type: array
+          items:
+            type: string
+            format: uuid
+          example: ["550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440003"]
+        strategy:
+          type: string
+          enum: [active-active, active-passive, blue-green]
+          example: "active-active"
+        status:
+          type: string
+          enum: [active, inactive, failed, deploying]
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateDeploymentRequest:
+      type: object
+      required:
+        - name
+        - service_name
+        - regions
+        - strategy
+      properties:
+        name:
+          type: string
+          example: "global-webapp"
+        service_name:
+          type: string
+          example: "web-service"
+        regions:
+          type: array
+          items:
+            type: string
+            format: uuid
+          example: ["550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440003"]
+        strategy:
+          type: string
+          enum: [active-active, active-passive, blue-green]
+          example: "active-active"
+        configuration:
+          type: object
+          additionalProperties:
+            type: object
+          example:
+            replicas: 3
+            resources:
+              cpu: "500m"
+              memory: "512Mi"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
