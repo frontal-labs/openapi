@@ -38,8 +38,8 @@ class CompositeGenerator {
   }
 
   async loadAllSpecs() {
-    console.log('📚 Loading all specifications...');
-    
+    console.log('Loading all specifications...');
+
     // Load individual service specs
     const specFiles = await this.getSpecFiles(SPECS_DIR);
     for (const file of specFiles) {
@@ -47,12 +47,12 @@ class CompositeGenerator {
       try {
         const spec = await this.loadSpec(file);
         this.specs[serviceName] = spec;
-        console.log(`✓ Loaded ${serviceName}`);
+        console.log(`Loaded ${serviceName}`);
       } catch (error) {
-        console.error(`✗ Failed to load ${serviceName}: ${error.message}`);
+        console.error(`Failed to load ${serviceName}: ${error.message}`);
       }
     }
-    
+
     // Load shared schemas
     if (await this.directoryExists(SCHEMAS_DIR)) {
       const schemaFiles = await this.getSpecFiles(SCHEMAS_DIR);
@@ -61,14 +61,14 @@ class CompositeGenerator {
         try {
           const schema = await this.loadSpec(file);
           this.schemas[schemaName] = schema;
-          console.log(`✓ Loaded schema ${schemaName}`);
+          console.log(`Loaded schema ${schemaName}`);
         } catch (error) {
-          console.error(`✗ Failed to load schema ${schemaName}: ${error.message}`);
+          console.error(`Failed to load schema ${schemaName}: ${error.message}`);
         }
       }
     }
-    
-    console.log(`✓ Loaded ${Object.keys(this.specs).length} service specs and ${Object.keys(this.schemas).length} schemas`);
+
+    console.log(`Loaded ${Object.keys(this.specs).length} service specs and ${Object.keys(this.schemas).length} schemas`);
   }
 
   async loadSpec(filePath) {
@@ -95,13 +95,13 @@ class CompositeGenerator {
   generateCompositeSpec(category) {
     const services = SERVICE_CATEGORIES[category] || [];
     const categorySpecs = services.filter(service => this.specs[service]);
-    
+
     if (categorySpecs.length === 0) {
-      console.warn(`⚠️  No services found for category: ${category}`);
+      console.warn(`No services found for category: ${category}`);
       return null;
     }
 
-    console.log(`🔧 Generating ${category} composite API from ${categorySpecs.length} services...`);
+    console.log(`Generating ${category} composite API from ${categorySpecs.length} services...`);
 
     // Start with base OpenAPI structure
     const composite = {
@@ -147,7 +147,7 @@ class CompositeGenerator {
 
     let description = descriptions[category] || `Composite API for ${category} services`;
     description += '\n\n**Included Services:**\n';
-    
+
     services.forEach(service => {
       const spec = this.specs[service];
       description += `- **${spec.info?.title || service}**: ${spec.info?.description || 'No description'}\n`;
@@ -223,22 +223,22 @@ class CompositeGenerator {
         Object.entries(spec.paths).forEach(([path, pathItem]) => {
           // Prefix paths with service name to avoid conflicts
           const prefixedPath = `/v1/${service}${path}`;
-          
+
           if (!pathSet.has(prefixedPath)) {
             pathSet.add(prefixedPath);
             paths[prefixedPath] = { ...pathItem };
-            
+
             // Add service information to operations
             Object.keys(pathItem).forEach(method => {
               if (pathItem[method].tags) {
-                pathItem[method].tags = pathItem[method].tags.map(tag => 
+                pathItem[method].tags = pathItem[method].tags.map(tag =>
                   `${service}:${tag}`
                 );
               }
               pathItem[method]['x-service'] = service;
             });
           } else {
-            console.warn(`⚠️  Path conflict: ${prefixedPath} already exists`);
+            console.warn(`Path conflict: ${prefixedPath} already exists`);
           }
         });
       }
@@ -295,10 +295,10 @@ class CompositeGenerator {
     if (!spec) return;
 
     await this.ensureDirectoryExists(COMPOSITE_DIR);
-    
+
     const filename = `${category}-api.yaml`;
     const filepath = path.join(COMPOSITE_DIR, filename);
-    
+
     const yamlContent = yaml.dump(spec, {
       indent: 2,
       lineWidth: 120,
@@ -307,7 +307,7 @@ class CompositeGenerator {
     });
 
     await fs.writeFile(filepath, yamlContent, 'utf8');
-    console.log(`✓ Generated ${filename}`);
+    console.log(`Generated ${filename}`);
   }
 
   async ensureDirectoryExists(dir) {
@@ -319,13 +319,13 @@ class CompositeGenerator {
   }
 
   async generateAll() {
-    console.log('🚀 Generating composite specifications...\n');
-    
+    console.log('Generating composite specifications...\n');
+
     await this.loadAllSpecs();
-    
+
     const categories = Object.keys(SERVICE_CATEGORIES);
     let generatedCount = 0;
-    
+
     for (const category of categories) {
       const spec = this.generateCompositeSpec(category);
       if (spec) {
@@ -333,8 +333,8 @@ class CompositeGenerator {
         generatedCount++;
       }
     }
-    
-    console.log(`\n✅ Generated ${generatedCount} composite specifications:`);
+
+    console.log(`\nGenerated ${generatedCount} composite specifications:`);
     categories.forEach(category => {
       const filepath = path.join(COMPOSITE_DIR, `${category}-api.yaml`);
       console.log(`  - ${filepath}`);
@@ -342,17 +342,17 @@ class CompositeGenerator {
   }
 
   async generateSingle(category) {
-    console.log(`🔧 Generating ${category} composite specification...\n`);
-    
+    console.log(`Generating ${category} composite specification...\n`);
+
     await this.loadAllSpecs();
-    
+
     const spec = this.generateCompositeSpec(category);
     if (spec) {
       await this.saveCompositeSpec(category, spec);
-      console.log(`✅ Generated ${category}-api.yaml`);
+      console.log(`Generated ${category}-api.yaml`);
       return true;
     } else {
-      console.error(`❌ Failed to generate ${category} composite specification`);
+      console.error(`Failed to generate ${category} composite specification`);
       return false;
     }
   }
@@ -362,7 +362,7 @@ class CompositeGenerator {
 async function main() {
   const args = process.argv.slice(2);
   const generator = new CompositeGenerator();
-  
+
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 Usage: node generate-composite.js [options]
@@ -386,21 +386,21 @@ Examples:
 `);
     process.exit(0);
   }
-  
+
   if (args.includes('--category') || args.includes('-c')) {
     const categoryIndex = args.findIndex(arg => arg === '--category' || arg === '-c');
     const category = args[categoryIndex + 1];
-    
+
     if (!category) {
-      console.error('❌ Category required when using --category flag');
+      console.error('Category required when using --category flag');
       process.exit(1);
     }
-    
+
     if (!SERVICE_CATEGORIES[category]) {
-      console.error(`❌ Invalid category: ${category}. Valid categories: ${Object.keys(SERVICE_CATEGORIES).join(', ')}`);
+      console.error(`Invalid category: ${category}. Valid categories: ${Object.keys(SERVICE_CATEGORIES).join(', ')}`);
       process.exit(1);
     }
-    
+
     const success = await generator.generateSingle(category);
     process.exit(success ? 0 : 1);
   } else {
@@ -410,7 +410,7 @@ Examples:
 
 if (require.main === module) {
   main().catch(error => {
-    console.error('❌ Generation failed:', error);
+    console.error('Generation failed:', error);
     process.exit(1);
   });
 }

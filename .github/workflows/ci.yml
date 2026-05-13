@@ -198,7 +198,7 @@ jobs:
       with:
         status: success
         channel: '#api-updates'
-        text: '✅ Frontal OpenAPI specs published successfully!'
+        text: 'Frontal OpenAPI specs published successfully!'
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         
@@ -208,6 +208,6 @@ jobs:
       with:
         status: failure
         channel: '#api-updates'
-        text: '❌ Frontal OpenAPI CI/CD pipeline failed!'
+        text: 'Frontal OpenAPI CI/CD pipeline failed!'
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

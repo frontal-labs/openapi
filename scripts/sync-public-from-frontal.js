@@ -335,8 +335,8 @@ class PublicApiSynchronizer {
       const extraPreview = extra.slice(0, 20).join(', ');
       throw new Error(
         `Coverage check failed. Missing=${missing.length}, Extra=${extra.length}` +
-          (missingPreview ? `\nMissing sample: ${missingPreview}` : '') +
-          (extraPreview ? `\nExtra sample: ${extraPreview}` : '')
+        (missingPreview ? `\nMissing sample: ${missingPreview}` : '') +
+        (extraPreview ? `\nExtra sample: ${extraPreview}` : '')
       );
     }
   }
@@ -396,13 +396,13 @@ async function main() {
   const result = await synchronizer.run({ verifyOnly });
 
   console.log(
-    `✅ Public API sync ${verifyOnly ? 'verification' : 'generation'} succeeded (${result.paths} paths, ${result.operations} operations).`
+    `Public API sync ${verifyOnly ? 'verification' : 'generation'} succeeded (${result.paths} paths, ${result.operations} operations).`
   );
 }
 
 if (require.main === module) {
   main().catch((error) => {
-    console.error(`❌ Public API sync failed: ${error.message}`);
+    console.error(`Public API sync failed: ${error.message}`);
     process.exit(1);
   });
 }

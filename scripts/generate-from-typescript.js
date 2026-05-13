@@ -12,7 +12,7 @@ const OUTPUT_DIR = path.join(__dirname, '../specs');
 // Services that use @hono/zod-openapi
 const TYPESCRIPT_SERVICES = [
   'functions',
-  'deployments', 
+  'deployments',
   'feature_flags',
   'blob_storage',
   'containers',
@@ -31,7 +31,7 @@ class TypeScriptSpecGenerator {
   }
 
   async generateAllSpecs() {
-    console.log('🚀 Generating OpenAPI specs from TypeScript services...\n');
+    console.log('Generating OpenAPI specs from TypeScript services...\n');
 
     for (const service of TYPESCRIPT_SERVICES) {
       try {
@@ -41,7 +41,7 @@ class TypeScriptSpecGenerator {
           service,
           error: error.message
         });
-        console.error(`❌ Failed to generate spec for ${service}: ${error.message}`);
+        console.error(`Failed to generate spec for ${service}: ${error.message}`);
       }
     }
 
@@ -49,42 +49,42 @@ class TypeScriptSpecGenerator {
   }
 
   async generateServiceSpec(serviceName) {
-    console.log(`📝 Generating spec for ${serviceName}...`);
-    
+    console.log(`Generating spec for ${serviceName}...`);
+
     const serviceDir = path.join(TYPESCRIPT_SERVICES_DIR, serviceName);
-    
+
     // Check if service directory exists
     try {
       await fs.access(serviceDir);
     } catch {
-      console.warn(`⚠️  Service directory not found: ${serviceDir}`);
+      console.warn(` Service directory not found: ${serviceDir}`);
       return;
     }
 
     // Check if service uses @hono/zod-openapi
     const packageJsonPath = path.join(serviceDir, 'package.json');
     const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
-    
+
     if (!packageJson.dependencies?.['@hono/zod-openapi']) {
-      console.warn(`⚠️  ${serviceName} doesn't use @hono/zod-openapi, skipping...`);
+      console.warn(` ${serviceName} doesn't use @hono/zod-openapi, skipping...`);
       return;
     }
 
     // Create a temporary script to extract OpenAPI spec
     const tempScript = await this.createExtractionScript(serviceDir, serviceName);
-    
+
     try {
       // Run the extraction script
       const spec = await this.runExtractionScript(serviceDir, tempScript);
-      
+
       if (spec) {
         await this.saveSpec(serviceName, spec);
         this.generatedSpecs.push(serviceName);
-        console.log(`✅ Generated spec for ${serviceName}`);
+        console.log(`Generated spec for ${serviceName}`);
       }
     } finally {
       // Clean up temporary script
-      await fs.unlink(tempScript).catch(() => {});
+      await fs.unlink(tempScript).catch(() => { });
     }
   }
 
@@ -232,11 +232,11 @@ console.log(JSON.stringify(spec, null, 2));
 
   async saveSpec(serviceName, spec) {
     await fs.mkdir(OUTPUT_DIR, { recursive: true });
-    
+
     const yaml = require('js-yaml');
     const filename = `${serviceName}.yaml`;
     const filepath = path.join(OUTPUT_DIR, filename);
-    
+
     const yamlContent = yaml.dump(spec, {
       indent: 2,
       lineWidth: 120,
@@ -248,18 +248,18 @@ console.log(JSON.stringify(spec, null, 2));
   }
 
   printResults() {
-    console.log('\n📊 Generation Results:');
+    console.log('\nGeneration Results:');
     console.log('====================');
-    
+
     if (this.generatedSpecs.length > 0) {
-      console.log(`✅ Successfully generated ${this.generatedSpecs.length} specs:`);
+      console.log(`Successfully generated ${this.generatedSpecs.length} specs:`);
       this.generatedSpecs.forEach(service => {
         console.log(`  - ${service}.yaml`);
       });
     }
 
     if (this.errors.length > 0) {
-      console.log(`\n❌ Failed to generate ${this.errors.length} specs:`);
+      console.log(`\nFailed to generate ${this.errors.length} specs:`);
       this.errors.forEach(({ service, error }) => {
         console.log(`  - ${service}: ${error}`);
       });
@@ -273,7 +273,7 @@ console.log(JSON.stringify(spec, null, 2));
 async function main() {
   const args = process.argv.slice(2);
   const generator = new TypeScriptSpecGenerator();
-  
+
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 Usage: node generate-from-typescript.js [options]
@@ -289,16 +289,16 @@ Examples:
 `);
     process.exit(0);
   }
-  
+
   if (args.includes('--service') || args.includes('-s')) {
     const serviceIndex = args.findIndex(arg => arg === '--service' || arg === '-s');
     const serviceName = args[serviceIndex + 1];
-    
+
     if (!serviceName) {
-      console.error('❌ Service name required when using --service flag');
+      console.error('Service name required when using --service flag');
       process.exit(1);
     }
-    
+
     await generator.generateServiceSpec(serviceName);
   } else {
     await generator.generateAllSpecs();
@@ -307,7 +307,7 @@ Examples:
 
 if (require.main === module) {
   main().catch(error => {
-    console.error('❌ Generation failed:', error);
+    console.error('Generation failed:', error);
     process.exit(1);
   });
 }
