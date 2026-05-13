@@ -1,54 +1,40 @@
+<picture>
+  <source srcset="./banner-dark.png" media="(prefers-color-scheme: dark)">
+  <source srcset="./banners.png" media="(prefers-color-scheme: light)">
+  <img src="./banner-dark.png" alt="Frontal Banner">
+</picture>
+
 # Frontal OpenAPI
 
-This repository publishes Frontal's public API specification generated from the
-runtime route inventory in the main `frontal` monorepo.
+Public OpenAPI 3.0 specifications for Frontal services, synchronized from the core monorepo.
 
-## Source of Truth
+## Getting Started
 
-The generator reads route inventory files from:
+The specifications are generated automatically and stored in the `openapi/` directory:
 
-- `/Volumes/Frontal Labs IP/frontal/docs/api-audit/api-frontal-dev.endpoints.tsv`
-- `/Volumes/Frontal Labs IP/frontal/docs/api-audit/route-catalog.json`
+- **[YAML Specification](openapi/openapi.spec3.yaml)**
+- **[JSON Specification](openapi/openapi.spec3.json)**
 
-## Generated Outputs
-
-- `openapi/openapi.spec3.yaml`
-- `openapi/openapi.spec3.json`
-
-## Commands
+### Commands
 
 ```bash
-# Regenerate OpenAPI outputs
+# Update specifications from source
 npm run generate:public-sync
 
-# Verify coverage and consistency without writing files
+# Verify coverage and consistency
 npm run verify:public-sync
 ```
 
-## Repository Layout
+## Repository Structure
 
-```text
-openapi/
-├── openapi/
-│   ├── openapi.spec3.yaml
-│   └── openapi.spec3.json
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── REFERENCE.md
-│   └── repo-structure-proposal.md
-├── examples/
-│   ├── curl/
-│   │   └── auth-examples.sh
-│   └── javascript/
-│       └── auth-example.js
-└── scripts/
-    └── sync-public-from-frontal.js
-```
+- `openapi/` — Generated OpenAPI specifications.
+- `docs/` — Architecture and reference manuals.
+- `examples/` — Integration samples (cURL, JavaScript).
+- `scripts/` — Synchronization and validation tooling.
+- `schemas/` — Shared data models.
 
-## Notes
+## Key Features
 
-- The spec is generated from observed/public routes and does not infer request or
-  response business schemas.
-- Paths are normalized to OpenAPI format (for example `/:id` becomes `/{id}`).
-- `ANY` routes are expanded into explicit methods (`GET`, `POST`, `PUT`,
-  `PATCH`, `DELETE`, `OPTIONS`, `HEAD`).
+- **Source of Truth**: Automatically derived from runtime route inventory in the `frontal` monorepo.
+- **Normalization**: Automatically converts route parameters (e.g., `/:id` → `/{id}`).
+- **Method Expansion**: Expands `ANY` catch-all routes into explicit HTTP methods (GET, POST, etc.).
