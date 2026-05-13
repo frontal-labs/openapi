@@ -7,7 +7,7 @@
     "validate": "node scripts/validate.js",
     "validate:all": "node scripts/validate.js --all",
     "validate:service": "node scripts/validate.js --service",
-    "generate": "npm run generate:composite && npm run generate:docs",
+    "generate": "npm run generate:public-sync",
     "generate:composite": "node scripts/generate-composite.js",
     "generate:docs": "node scripts/generate-docs.js",
     "generate:sdks": "node scripts/generate-sdks.js",
@@ -18,8 +18,10 @@
     "check-breaking": "node scripts/check-breaking.js",
     "publish": "node scripts/publish.js",
     "dev": "node scripts/watch.js",
-    "clean": "rm -rf dist/ docs/build/ composite/",
-    "prepare": "npm run build"
+    "clean": "rm -rf dist/ docs/build/ composite/ openapi/openapi.spec3.yaml openapi/openapi.spec3.json",
+    "prepare": "npm run build",
+    "generate:public-sync": "node scripts/sync-public-from-frontal.js",
+    "verify:public-sync": "node scripts/sync-public-from-frontal.js --verify-only"
   },
   "repository": {
     "type": "git",
@@ -45,8 +47,8 @@
     "npm": ">=8.0.0"
   },
   "files": [
-    "specs/",
-    "composite/",
+    "openapi/openapi.spec3.yaml",
+    "openapi/openapi.spec3.json",
     "schemas/",
     "examples/",
     "docs/build/",
