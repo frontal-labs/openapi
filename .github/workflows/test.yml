@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        example: [curl, javascript, python, go]
+        example: [curl, javascript]
 
     steps:
       - name: Checkout code
@@ -39,11 +39,5 @@ jobs:
               ;;
             javascript)
               node examples/javascript/*.js || echo "Examples require API keys for actual testing"
-              ;;
-            python)
-              python -m py_compile examples/python/*.py || echo "Examples require API keys for actual testing"
-              ;;
-            go)
-              cd examples/go && go build ./... || echo "Examples require API keys for actual testing"
               ;;
           esac

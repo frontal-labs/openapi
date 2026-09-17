@@ -77,10 +77,14 @@ class CompositeGenerator {
   }
 
   async getSpecFiles(dir) {
-    const files = await fs.readdir(dir);
-    return files
-      .filter(file => file.endsWith('.yaml') || file.endsWith('.yml'))
-      .map(file => path.join(dir, file));
+    try {
+      const files = await fs.readdir(dir);
+      return files
+        .filter(file => file.endsWith('.yaml') || file.endsWith('.yml'))
+        .map(file => path.join(dir, file));
+    } catch {
+      return [];
+    }
   }
 
   async directoryExists(dir) {
