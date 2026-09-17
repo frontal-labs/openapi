@@ -32,7 +32,7 @@ jobs:
         with:
           repository: frontal-labs/frontal
           token: ${{ steps.app-token.outputs.token }}
-          path: .frontal-src
+          path: .source
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -45,7 +45,7 @@ jobs:
 
       - name: Regenerate and verify OpenAPI spec
         env:
-          FRONTAL_REPO: ${{ github.workspace }}/.frontal-src
+          FRONTAL_REPO: ${{ github.workspace }}/.source
         run: |
           npm run generate:public-sync
           npm run verify:public-sync

@@ -7,7 +7,7 @@ dist/
 build/
 
 # Frontal monorepo checkout (used by sync workflow)
-.frontal-src/
+.source/
 
 # OS generated files
 .DS_Store

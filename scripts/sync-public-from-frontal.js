@@ -7,7 +7,7 @@ const SwaggerParser = require('@apidevtools/swagger-parser');
 
 const FRONTAL_REPO = process.env.FRONTAL_REPO || '/Volumes/Frontal Labs IP/frontal';
 const TSV_SOURCE = path.join(FRONTAL_REPO, 'docs/api-audit/api-frontal-dev.endpoints.tsv');
-const ROUTE_CATALOG_SOURCE = path.join(FRONTAL_REPO, 'docs/api-audit/route-catalog.json');
+const ROUTE_CATALOG_SOURCE = path.join(FRONTAL_REPO, 'docs/api/routes.json');
 const OUTPUT_YAML_PATH = path.join(__dirname, '../openapi/openapi.spec3.yaml');
 const OUTPUT_JSON_PATH = path.join(__dirname, '../openapi/openapi.spec3.json');
 const SYNC_DATE = new Date().toISOString().slice(0, 10);
@@ -132,7 +132,7 @@ class PublicApiSynchronizer {
       if (!route?.method || !route?.path || route.path === '/*') {
         continue;
       }
-      this.addRoute(route.method, route.path, 'docs/api-audit/route-catalog.json');
+      this.addRoute(route.method, route.path, 'docs/api/routes.json');
     }
   }
 
