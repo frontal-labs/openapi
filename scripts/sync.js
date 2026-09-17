@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require('node:fs').promises;
+const path = require('node:path');
 const yaml = require('js-yaml');
 const SwaggerParser = require('@apidevtools/swagger-parser');
 
@@ -85,7 +85,7 @@ class PublicApiSynchronizer {
         const currentPath = this.routes.get(pathname);
         const currentOperation = currentPath ? currentPath.get(expandedMethod) : null;
 
-        if (currentOperation && currentOperation.explicit) {
+        if (currentOperation?.explicit) {
           continue;
         }
 
@@ -218,9 +218,7 @@ class PublicApiSynchronizer {
 
     for (const pathname of sortedPaths) {
       const methodMap = this.routes.get(pathname);
-      const sortedMethods = [...methodMap.keys()].sort(
-        (a, b) => METHOD_ORDER.indexOf(a) - METHOD_ORDER.indexOf(b)
-      );
+      const sortedMethods = [...methodMap.keys()].sort((a, b) => METHOD_ORDER.indexOf(a) - METHOD_ORDER.indexOf(b));
 
       const tag = this.getTagForPath(pathname);
       tagSet.add(tag);
@@ -253,18 +251,19 @@ class PublicApiSynchronizer {
       paths[pathname] = pathItem;
     }
 
-    const tags = [...tagSet].sort((a, b) => a.localeCompare(b)).map((tag) => ({
-      name: tag,
-      description: `Synchronized ${tag} endpoints`,
-    }));
+    const tags = [...tagSet]
+      .sort((a, b) => a.localeCompare(b))
+      .map((tag) => ({
+        name: tag,
+        description: `Synchronized ${tag} endpoints`,
+      }));
 
     return {
       openapi: '3.0.3',
       info: {
         title: 'Frontal Public API',
         version: '1.0.0',
-        description:
-          'Public API synchronized from frontal gateway route inventory and endpoint catalog.',
+        description: 'Public API synchronized from frontal gateway route inventory and endpoint catalog.',
         contact: {
           name: 'API Support',
           url: 'https://github.com/frontal-labs/openapi/issues',
@@ -334,9 +333,7 @@ class PublicApiSynchronizer {
       const missingPreview = missing.slice(0, 20).join(', ');
       const extraPreview = extra.slice(0, 20).join(', ');
       throw new Error(
-        `Coverage check failed. Missing=${missing.length}, Extra=${extra.length}` +
-        (missingPreview ? `\nMissing sample: ${missingPreview}` : '') +
-        (extraPreview ? `\nExtra sample: ${extraPreview}` : '')
+        `Coverage check failed. Missing=${missing.length}, Extra=${extra.length}${missingPreview ? `\nMissing sample: ${missingPreview}` : ''}${extraPreview ? `\nExtra sample: ${extraPreview}` : ''}`,
       );
     }
   }
@@ -357,7 +354,7 @@ class PublicApiSynchronizer {
     });
 
     await fs.writeFile(OUTPUT_YAML_PATH, yamlOutput, 'utf8');
-    await fs.writeFile(OUTPUT_JSON_PATH, JSON.stringify(spec, null, 2) + '\n', 'utf8');
+    await fs.writeFile(OUTPUT_JSON_PATH, `${JSON.stringify(spec, null, 2)}\n`, 'utf8');
   }
 
   async loadInputs() {
@@ -387,7 +384,9 @@ class PublicApiSynchronizer {
 async function main() {
   const args = process.argv.slice(2);
   if (args.includes('--help') || args.includes('-h')) {
-    console.log(`\nUsage: node scripts/sync-public-from-frontal.js [options]\n\nOptions:\n  --verify-only    Build in-memory and run coverage checks only\n  --help, -h       Show this help message\n`);
+    console.log(
+      '\nUsage: node scripts/sync-public-from-frontal.js [options]\n\nOptions:\n  --verify-only    Build in-memory and run coverage checks only\n  --help, -h       Show this help message\n',
+    );
     process.exit(0);
   }
 
@@ -396,7 +395,7 @@ async function main() {
   const result = await synchronizer.run({ verifyOnly });
 
   console.log(
-    `Public API sync ${verifyOnly ? 'verification' : 'generation'} succeeded (${result.paths} paths, ${result.operations} operations).`
+    `Public API sync ${verifyOnly ? 'verification' : 'generation'} succeeded (${result.paths} paths, ${result.operations} operations).`,
   );
 }
 

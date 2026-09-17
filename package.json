@@ -11,8 +11,8 @@
     "generate:composite": "node scripts/generate.js",
     "generate:public-sync": "node scripts/sync.js",
     "verify:public-sync": "node scripts/sync.js --verify-only",
-    "lint": "eslint scripts/ --fix",
-    "format": "prettier --write scripts/ *.md"
+    "lint": "biome check scripts/",
+    "format": "biome format --write scripts/ *.md"
   },
   "repository": {
     "type": "git",
@@ -30,8 +30,8 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
-    "js-yaml": "^4.1.0",
-    "prettier": "^3.2.5"
+    "@biomejs/biome": "^1.9.0",
+    "js-yaml": "^4.1.0"
   },
   "engines": {
     "node": ">=18.0.0",
