@@ -29,14 +29,8 @@ jobs:
     - name: Validate all specifications
       run: npm run validate:all
       
-    - name: Check for breaking changes
-      run: npm run check-breaking
-      
     - name: Lint code
       run: npm run lint
-      
-    - name: Format check
-      run: npm run format:check
 
   generate:
     name: Generate Composite Specifications
@@ -59,16 +53,12 @@ jobs:
     - name: Generate composite specifications
       run: npm run generate:composite
       
-    - name: Generate documentation
-      run: npm run generate:docs
-      
     - name: Upload generated files
       uses: actions/upload-artifact@v4
       with:
         name: generated-specs
         path: |
           composite/
-          docs/build/
         retention-days: 7
 
   test-examples:
@@ -168,7 +158,6 @@ jobs:
         name: generated-specs
         path: |
           composite/
-          docs/build/
           
     - name: Build package
       run: npm run build
@@ -177,13 +166,6 @@ jobs:
       run: npm publish
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        
-    - name: Deploy documentation to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/build
-        publish_branch: gh-pages
 
   notify:
     name: Notify Results

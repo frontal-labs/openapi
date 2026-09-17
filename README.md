@@ -15,15 +15,7 @@ The specifications are generated automatically and stored in the `openapi/` dire
 - **[YAML Specification](openapi/openapi.spec3.yaml)**
 - **[JSON Specification](openapi/openapi.spec3.json)**
 
-### Commands
-
-```bash
-# Update specifications from source
-npm run generate:public-sync
-
-# Verify coverage and consistency
-npm run verify:public-sync
-```
+Specifications are synced daily from the `frontal` monorepo via the [`sync-openapi.yml`](.github/workflows/sync-openapi.yml) scheduled workflow. A manual sync can be triggered at any time using the workflow's **Run workflow** button.
 
 ## Repository Structure
 

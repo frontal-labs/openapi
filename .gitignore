@@ -6,6 +6,9 @@ package-lock.json
 dist/
 build/
 
+# Frontal monorepo checkout (used by sync workflow)
+.frontal-src/
+
 # OS generated files
 .DS_Store
 .DS_Store?
