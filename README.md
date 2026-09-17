@@ -1,4 +1,4 @@
-# Frontal Labs OpenAPI
+# Frontal OpenAPI
 
 ![Frontal Banner](./banner.png)
 
