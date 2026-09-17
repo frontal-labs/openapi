@@ -1,0 +1,41 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish Specifications
+    runs-on: ubuntu-latest
+    needs: [validate, generate, test-examples, security]
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download generated files
+        uses: actions/download-artifact@v4
+        with:
+          name: composite-specs
+          path: |
+            composite/
+
+      - name: Build package
+        run: npm run build
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

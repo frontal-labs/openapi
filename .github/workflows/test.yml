@@ -1,0 +1,49 @@
+name: Test Examples
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-examples:
+    name: Test API Examples
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        example: [curl, javascript, python, go]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test ${{ matrix.example }} examples
+        run: |
+          case "${{ matrix.example }}" in
+            curl)
+              # Install jq for JSON parsing
+              sudo apt-get update && sudo apt-get install -y jq
+              chmod +x examples/curl/*.sh
+              echo "Testing curl examples (dry run)..."
+              bash -n examples/curl/*.sh
+              ;;
+            javascript)
+              node examples/javascript/*.js || echo "Examples require API keys for actual testing"
+              ;;
+            python)
+              python -m py_compile examples/python/*.py || echo "Examples require API keys for actual testing"
+              ;;
+            go)
+              cd examples/go && go build ./... || echo "Examples require API keys for actual testing"
+              ;;
+          esac

@@ -90,10 +90,10 @@ class TypeScriptSpecGenerator {
 
   async createExtractionScript(serviceDir, serviceName) {
     const scriptContent = `
-import { createApi } from '@frontal/hono-api';
+import { createApi } from '@frontal-labs/hono-api';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { connectDatabase } from './src/modules/postgres';
-import { logger } from '@frontal/logger';
+import { logger } from '@frontal-labs/logger';
 import { env } from './src/config/env';
 
 // Import routes

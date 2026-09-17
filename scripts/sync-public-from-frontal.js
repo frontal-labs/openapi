@@ -235,16 +235,16 @@ class PublicApiSynchronizer {
         const routeInfo = methodMap.get(method);
         const operation = {
           summary: `${method} ${pathname}`,
-          description: 'Synchronized from the frontal route inventory.',
+          description: 'Synchronized from the Frontal Labs route inventory.',
           operationId: this.createOperationId(method, pathname),
           tags: [tag],
           responses: this.createResponses(method),
-          'x-frontal-source': [...routeInfo.sources].sort(),
-          'x-frontal-sync-date': SYNC_DATE,
+          'x-frontal-labs-source': [...routeInfo.sources].sort(),
+          'x-frontal-labs-sync-date': SYNC_DATE,
         };
 
         if (routeInfo.anyDerived && !routeInfo.explicit) {
-          operation['x-frontal-any'] = true;
+          operation['x-frontal-labs-any'] = true;
         }
 
         pathItem[method.toLowerCase()] = operation;
@@ -270,8 +270,8 @@ class PublicApiSynchronizer {
           url: 'https://github.com/frontal-labs/openapi/issues',
         },
         license: {
-          name: 'MIT License',
-          url: 'https://github.com/frontal-labs/openapi/blob/main/LICENSE',
+          name: 'Apache-2.0',
+          url: 'https://github.com/frontal-labs/openapi/blob/main/LICENSE.md',
         },
       },
       servers: [

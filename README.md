@@ -1,12 +1,8 @@
-<picture>
-  <source srcset="./banner-dark.png" media="(prefers-color-scheme: dark)">
-  <source srcset="./banners.png" media="(prefers-color-scheme: light)">
-  <img src="./banner-dark.png" alt="Frontal Banner">
-</picture>
+# Frontal Labs OpenAPI
 
-# Frontal OpenAPI
+![Frontal Banner](./banner.png)
 
-Public OpenAPI 3.0 specifications for Frontal services, synchronized from the core monorepo.
+Public OpenAPI 3.0 specifications for Frontal Labs services, synchronized from the core monorepo.
 
 ## Getting Started
 
@@ -30,3 +26,7 @@ Specifications are synced daily from the `frontal` monorepo via the [`sync-opena
 - **Source of Truth**: Automatically derived from runtime route inventory in the `frontal` monorepo.
 - **Normalization**: Automatically converts route parameters (e.g., `/:id` → `/{id}`).
 - **Method Expansion**: Expands `ANY` catch-all routes into explicit HTTP methods (GET, POST, etc.).
+
+## License
+
+Apache-2.0 © Frontal Labs, Inc.

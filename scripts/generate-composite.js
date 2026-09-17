@@ -116,8 +116,8 @@ class CompositeGenerator {
           url: 'https://github.com/frontal-labs/openapi/issues'
         },
         license: {
-          name: 'MIT License',
-          url: 'https://github.com/frontal-labs/openapi/blob/main/LICENSE'
+          name: 'Apache-2.0',
+          url: 'https://github.com/frontal-labs/openapi/blob/main/LICENSE.md'
         }
       },
       servers: this.generateServers(category),
