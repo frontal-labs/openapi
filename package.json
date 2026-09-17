@@ -9,8 +9,8 @@
     "validate:service": "node scripts/validate.js --service",
     "generate": "npm run generate:public-sync",
     "generate:composite": "node scripts/generate-composite.js",
-    "generate:public-sync": "node scripts/sync-public-from-frontal.js",
-    "verify:public-sync": "node scripts/sync-public-from-frontal.js --verify-only",
+    "generate:public-sync": "node scripts/sync.js",
+    "verify:public-sync": "node scripts/sync.js --verify-only",
     "lint": "eslint scripts/ --fix",
     "format": "prettier --write scripts/ *.md"
   },
@@ -43,6 +43,7 @@
     "schemas/",
     "examples/",
     "README.md",
-    "LICENSE.md"
+    "LICENSE.md",
+    "NOTICE.md"
   ]
 }
