@@ -1,5 +1,5 @@
 {
-  "name": "@frontal/openapi",
+  "name": "@frontal-labs/openapi",
   "version": "1.0.0",
   "description": "Unified OpenAPI specifications for Frontal services",
   "main": "index.js",
@@ -8,20 +8,11 @@
     "validate:all": "node scripts/validate.js --all",
     "validate:service": "node scripts/validate.js --service",
     "generate": "npm run generate:public-sync",
-    "generate:composite": "node scripts/generate-composite.js",
-    "generate:docs": "node scripts/generate-docs.js",
-    "generate:sdks": "node scripts/generate-sdks.js",
-    "build": "npm run validate && npm run generate",
-    "test": "npm run validate",
-    "lint": "eslint scripts/ --fix",
-    "format": "prettier --write scripts/ *.md",
-    "check-breaking": "node scripts/check-breaking.js",
-    "publish": "node scripts/publish.js",
-    "dev": "node scripts/watch.js",
-    "clean": "rm -rf dist/ docs/build/ composite/ openapi/openapi.spec3.yaml openapi/openapi.spec3.json",
-    "prepare": "npm run build",
-    "generate:public-sync": "node scripts/sync-public-from-frontal.js",
-    "verify:public-sync": "node scripts/sync-public-from-frontal.js --verify-only"
+    "generate:composite": "node scripts/generate.js",
+    "generate:public-sync": "node scripts/sync.js",
+    "verify:public-sync": "node scripts/sync.js --verify-only",
+    "lint": "biome check scripts/",
+    "format": "biome format --write scripts/ *.md"
   },
   "repository": {
     "type": "git",
@@ -35,12 +26,12 @@
     "microservices",
     "documentation"
   ],
-  "author": "Frontal Labs",
-  "license": "MIT",
+  "author": "Frontal Labs, Inc.",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
-    "js-yaml": "^4.1.0",
-    "prettier": "^3.2.5"
+    "@biomejs/biome": "^1.9.0",
+    "js-yaml": "^4.1.0"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -51,8 +42,8 @@
     "openapi/openapi.spec3.json",
     "schemas/",
     "examples/",
-    "docs/build/",
     "README.md",
-    "LICENSE"
+    "LICENSE.md",
+    "NOTICE.md"
   ]
 }

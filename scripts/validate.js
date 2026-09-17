@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require('node:fs').promises;
+const path = require('node:path');
 const SwaggerParser = require('@apidevtools/swagger-parser');
 const YAML = require('js-yaml');
 
@@ -41,7 +41,7 @@ class ApiValidator {
       this.errors.push({
         file: filePath,
         message: error.message,
-        severity: 'error'
+        severity: 'error',
       });
       console.error(`${path.relative(process.cwd(), filePath)}: ${error.message}`);
       return false;
@@ -50,7 +50,7 @@ class ApiValidator {
 
   async validateDirectory(dirPath, isFragment = false) {
     const files = await fs.readdir(dirPath);
-    const yamlFiles = files.filter(file => file.endsWith('.yaml') || file.endsWith('.yml') || file.endsWith('.json'));
+    const yamlFiles = files.filter((file) => file.endsWith('.yaml') || file.endsWith('.yml') || file.endsWith('.json'));
 
     let allValid = true;
     for (const file of yamlFiles) {
@@ -123,7 +123,7 @@ class ApiValidator {
         this.errors.push({
           file: filePath,
           message: `Unresolved reference: ${error.message}`,
-          severity: 'error'
+          severity: 'error',
         });
         console.error(`Unresolved reference in ${path.relative(process.cwd(), filePath)}: ${error.message}`);
         hasUnresolvedRefs = true;
@@ -139,13 +139,17 @@ class ApiValidator {
       { path: SPECS_DIR, isFragment: false },
       { path: SCHEMAS_DIR, isFragment: true },
       { path: COMPOSITE_DIR, isFragment: false },
-      { path: OPENAPI_DIR, isFragment: false }
+      { path: OPENAPI_DIR, isFragment: false },
     ];
 
     for (const { path: dirPath } of dirs) {
       if (await this.directoryExists(dirPath)) {
         const dirFiles = await fs.readdir(dirPath);
-        files.push(...dirFiles.filter(f => f.endsWith('.yaml') || f.endsWith('.yml') || f.endsWith('.json')).map(f => path.join(dirPath, f)));
+        files.push(
+          ...dirFiles
+            .filter((f) => f.endsWith('.yaml') || f.endsWith('.yml') || f.endsWith('.json'))
+            .map((f) => path.join(dirPath, f)),
+        );
       }
     }
 
@@ -170,7 +174,7 @@ class ApiValidator {
     } else {
       if (this.errors.length > 0) {
         console.log(`\nErrors (${this.errors.length}):`);
-        this.errors.forEach(error => {
+        this.errors.forEach((error) => {
           console.log(`  ${path.relative(process.cwd(), error.file)}: ${error.message}`);
           if (error.path) {
             console.log(`    Path: ${error.path}`);
@@ -180,7 +184,7 @@ class ApiValidator {
 
       if (this.warnings.length > 0) {
         console.log(`\n  Warnings (${this.warnings.length}):`);
-        this.warnings.forEach(warning => {
+        this.warnings.forEach((warning) => {
           console.log(`  ${path.relative(process.cwd(), warning.file)}: ${warning.message}`);
           if (warning.path) {
             console.log(`    Path: ${warning.path}`);
@@ -220,7 +224,7 @@ Examples:
   }
 
   if (args.includes('--service') || args.includes('-s')) {
-    const serviceIndex = args.findIndex(arg => arg === '--service' || arg === '-s');
+    const serviceIndex = args.findIndex((arg) => arg === '--service' || arg === '-s');
     const serviceName = args[serviceIndex + 1];
 
     if (!serviceName) {
@@ -242,7 +246,7 @@ Examples:
 }
 
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error('Validation failed:', error);
     process.exit(1);
   });

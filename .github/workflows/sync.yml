@@ -1,0 +1,68 @@
+name: Sync OpenAPI Spec
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync OpenAPI Spec from Frontal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.OPENAPI_APP_ID }}
+          private-key: ${{ secrets.OPENAPI_APP_PRIVATE_KEY }}
+          owner: frontal-labs
+          repositories: openapi,frontal
+
+      - name: Checkout openapi repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Checkout frontal repo
+        uses: actions/checkout@v4
+        with:
+          repository: frontal-labs/frontal
+          token: ${{ steps.app-token.outputs.token }}
+          path: .source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate and verify OpenAPI spec
+        env:
+          FRONTAL_REPO: ${{ github.workspace }}/.source
+        run: |
+          npm run generate:public-sync
+          npm run verify:public-sync
+
+      - name: Commit and push if changed
+        if: always()
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          if git diff --quiet -- openapi/; then
+            echo "No changes."
+            exit 0
+          fi
+          BOT_ID=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${BOT_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git add openapi/
+          git commit -m "chore: sync OpenAPI spec from frontal route inventory"
+          git push
